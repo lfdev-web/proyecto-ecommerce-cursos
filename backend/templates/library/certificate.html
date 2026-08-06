@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<style>
+    /* WeasyPrint no soporta bien flexbox ni 100vh: el centrado se hace con
+       dimensiones fijas de A4 horizontal (297x210mm) y display: table. */
+    @page { size: A4 landscape; margin: 0; }
+    * { box-sizing: border-box; }
+    body { margin: 0; font-family: 'DejaVu Sans', sans-serif; }
+
+    .certificate {
+        width: 297mm;
+        height: 210mm;
+        padding: 12mm;
+        background: #fdfcf8;
+    }
+    .frame {
+        width: 100%;
+        height: 100%;
+        border: 3px solid #1e3a5f;
+        outline: 1px solid #b48b3c;
+        outline-offset: -8px;
+        position: relative;
+    }
+    .content {
+        position: absolute;
+        top: 50%;
+        left: 0;
+        right: 0;
+        transform: translateY(-50%);
+        text-align: center;
+        padding: 0 25mm;
+    }
+
+    .brand {
+        font-size: 13px;
+        letter-spacing: 6px;
+        color: #b48b3c;
+        text-transform: uppercase;
+        margin-bottom: 10mm;
+    }
+    .title {
+        font-family: 'DejaVu Serif', serif;
+        font-size: 40px;
+        font-weight: bold;
+        color: #1e3a5f;
+        margin: 0 0 4mm;
+    }
+    .subtitle { font-size: 14px; color: #6b7280; margin: 0 0 10mm; }
+    .student {
+        font-family: 'DejaVu Serif', serif;
+        font-size: 32px;
+        font-weight: bold;
+        color: #111827;
+        margin: 0 auto 3mm;
+        padding-bottom: 3mm;
+        border-bottom: 1px solid #b48b3c;
+        width: 60%;
+    }
+    .course { font-size: 16px; color: #374151; margin: 6mm 0 0; line-height: 1.6; }
+    .course strong { color: #1e3a5f; }
+    .hours { font-size: 13px; color: #6b7280; margin-top: 2mm; }
+    .meta {
+        margin-top: 14mm;
+        font-size: 10px;
+        color: #9ca3af;
+        letter-spacing: 1px;
+    }
+</style>
+</head>
+<body>
+    <div class="certificate">
+        <div class="frame">
+            <div class="content">
+                <div class="brand">Plataforma de Cursos Tecnológicos</div>
+                <p class="title">Certificado de Finalización</p>
+                <p class="subtitle">Este certificado (simulado) se otorga a</p>
+                <p class="student">{{ student_name }}</p>
+                <p class="course">por completar exitosamente el curso<br><strong>"{{ course_title }}"</strong></p>
+                {% if course_duration_hours %}
+                <p class="hours">{{ course_duration_hours }} horas académicas</p>
+                {% endif %}
+                <div class="meta">
+                    Emitido el {{ issued_at }} &middot; Código de verificación: {{ verification_code }}
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

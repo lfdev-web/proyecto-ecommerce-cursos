@@ -1,0 +1,274 @@
+/* Dirección visual "Marketplace claro" (opción A elegida por el usuario):
+   morado confianza como marca + verde para lo transaccional, titulares Poppins,
+   texto Open Sans (referencias: Udemy/Coursera; paleta Marketplace P2P validada WCAG).
+   Las fuentes se cargan con <link> en index.html: un @import aquí serializa la
+   descarga (primero el CSS, después la fuente) y retrasa el primer render. */
+
+:root {
+  color-scheme: light;
+
+  /* Paleta base — blanco con tinte lila muy suave */
+  --bg: #FAF8FF;
+  --surface: #FFFFFF;
+  --surface-2: #F5F2FC;
+  --surface-border: #E6E0F5;
+  --surface-hover: #F3EFFB;
+
+  --text-primary: #241F35;   /* 13.7:1 sobre blanco */
+  --text-secondary: #64607A; /*  6.0:1 sobre blanco */
+  /* #9A95AE daba 2.9:1 y no pasaba WCAG AA para texto pequeño
+     (conteo de reseñas, "Sin reseñas aún", duraciones). Ahora 5.1:1. */
+  --text-muted: #6F6A85;
+
+  /* Marca: morado confianza (rol alumno) */
+  --accent: #7C3AED;
+  --accent-2: #8B5CF6;
+  --accent-hover: #6D28D9;
+  --accent-soft: #F1EAFE;
+  --accent-strong: #5B21B6;
+  --accent-gradient: linear-gradient(135deg, #7C3AED 0%, #8B5CF6 100%);
+
+  /* Acentos por rol (para los shells de docente y admin) */
+  --role-docente: #059669;
+  --role-docente-soft: #ECFDF5;
+  --role-docente-strong: #047857;
+  --role-admin: #0284C7;
+  --role-admin-soft: #F0F9FF;
+  --role-admin-strong: #0369A1;
+
+  /* Semánticos (verde = transacción/compra, según la dirección elegida) */
+  --success: #16A34A;
+  --success-soft: #DCFCE7;
+  --danger: #DC2626;
+  --danger-soft: #FEE2E2;
+  --warning: #D97706;
+  --warning-soft: #FEF3C7;
+
+  --radius-sm: 8px;
+  --radius-md: 10px;
+  --radius-lg: 14px;
+
+  --shadow-sm: 0 1px 2px rgba(46, 16, 101, 0.06);
+  --shadow-md: 0 2px 6px rgba(46, 16, 101, 0.08), 0 1px 2px rgba(46, 16, 101, 0.05);
+  --shadow-lg: 0 10px 28px rgba(46, 16, 101, 0.12);
+  --shadow-glass: var(--shadow-sm);
+  --transition: all 0.18s ease;
+
+  --font-heading: 'Poppins', system-ui, sans-serif;
+  --font-body: 'Open Sans', system-ui, -apple-system, sans-serif;
+
+  font-family: var(--font-body);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html, body, #root {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text-primary);
+  min-height: 100vh;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+a { color: inherit; text-decoration: none; }
+
+/* Foco visible para navegación por teclado. :focus-visible solo se activa con
+   teclado, así que el clic con mouse no deja el anillo pegado. */
+a:focus-visible,
+button:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible,
+[tabindex]:focus-visible {
+  outline: 3px solid var(--accent);
+  outline-offset: 2px;
+  border-radius: var(--radius-sm);
+}
+
+/* Respeta la preferencia del sistema de reducir animaciones (vestibular). */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+  a.glass:hover { transform: none; }
+}
+
+h1, h2, h3, h4 {
+  margin: 0 0 0.5em;
+  font-family: var(--font-heading);
+  font-weight: 700;
+  letter-spacing: -0.015em;
+  color: var(--text-primary);
+}
+h1 { font-size: 28px; }
+h2 { font-size: 22px; }
+h3 { font-size: 18px; }
+
+p { margin: 0 0 1em; color: var(--text-secondary); line-height: 1.6; }
+
+/* ---------- Layout ---------- */
+
+.page { max-width: 1200px; margin: 0 auto; padding: 32px 24px 80px; }
+
+.container-narrow { max-width: 480px; margin: 0 auto; }
+
+.grid { display: grid; gap: 20px; }
+
+.grid-cards { grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); }
+
+/* Contenido principal + columna lateral (detalle de curso, carrito, reproductor).
+   Estas rejillas estaban en estilos inline y por eso no se podían adaptar con
+   media queries; ahora colapsan a una columna en pantallas angostas. */
+.layout-split { grid-template-columns: 1.7fr 1fr; align-items: start; }
+.layout-split-wide { grid-template-columns: 2fr 1fr; align-items: start; }
+.layout-split-even { grid-template-columns: 1fr 1fr; align-items: start; }
+
+/* Dos columnas de contenido corto (formularios, listas de beneficios) */
+.two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+
+/* Columna lateral fija al hacer scroll; deja de estarlo cuando ya no hay lateral */
+.sticky-side { position: sticky; top: 100px; }
+
+/* Cualquier tabla ancha se desplaza dentro de su tarjeta, nunca empuja la página */
+.table-scroll { overflow-x: auto; }
+.table-scroll table { width: 100%; border-collapse: collapse; }
+
+/* ---------- Puntos de quiebre ---------- */
+
+@media (max-width: 900px) {
+  .layout-split,
+  .layout-split-wide,
+  .layout-split-even { grid-template-columns: 1fr; }
+  /* Sin columna lateral el sticky solo estorba: la tarjeta ya está en el flujo */
+  .sticky-side { position: static; }
+}
+
+@media (max-width: 640px) {
+  .page { padding: 20px 16px 64px; }
+  .two-col { grid-template-columns: 1fr; }
+  h1 { font-size: 24px; }
+  h2 { font-size: 20px; }
+  .card { padding: 16px; }
+}
+
+/* ---------- Superficie de tarjeta ----------
+   Mantiene el nombre .glass (usado en todas las páginas) pero ahora es una
+   tarjeta blanca limpia con borde y sombra sutil, sin blur ni glassmorphism. */
+
+.glass {
+  background: var(--surface);
+  border: 1px solid var(--surface-border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
+  transition: var(--transition);
+}
+
+.glass:hover { box-shadow: var(--shadow-md); }
+
+/* Cuando la tarjeta es un enlace (catálogo), eleva un poco al pasar el mouse */
+a.glass:hover { transform: translateY(-2px); box-shadow: var(--shadow-md); border-color: #D1D5DB; }
+
+.card { padding: 20px; }
+
+/* ---------- Buttons ---------- */
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 11px 20px;
+  border-radius: var(--radius-sm);
+  border: 1px solid transparent;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: var(--transition);
+  font-family: inherit;
+}
+
+.btn-primary { background: var(--accent); color: #fff; }
+.btn-primary:hover { background: var(--accent-hover); }
+.btn-primary:disabled { opacity: 0.55; cursor: not-allowed; }
+
+.btn-secondary {
+  background: var(--surface);
+  color: var(--text-primary);
+  border: 1px solid var(--surface-border);
+}
+.btn-secondary:hover { background: var(--surface-hover); }
+
+.btn-block { width: 100%; }
+
+/* ---------- Forms ---------- */
+
+.field { margin-bottom: 16px; text-align: left; }
+
+.field label {
+  display: block;
+  margin-bottom: 6px;
+  font-size: 13px;
+  color: var(--text-secondary);
+  font-weight: 600;
+}
+
+.field input, .field textarea, .field select {
+  width: 100%;
+  padding: 10px 12px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--surface-border);
+  background: #fff;
+  color: var(--text-primary);
+  font-size: 15px;
+  font-family: inherit;
+  transition: var(--transition);
+}
+
+.field input:focus, .field textarea:focus, .field select:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-soft);
+}
+
+/* ---------- Badges ---------- */
+
+.badge { display: inline-block; padding: 4px 10px; border-radius: 999px; font-size: 12px; font-weight: 700; }
+
+.badge-success { background: var(--success-soft); color: #166534; }
+.badge-danger { background: var(--danger-soft); color: #991B1B; }
+.badge-accent { background: var(--accent-soft); color: var(--accent-strong); }
+
+/* ---------- Alerts ---------- */
+
+.alert { padding: 12px 16px; border-radius: var(--radius-sm); font-size: 14px; margin-bottom: 16px; }
+
+.alert-danger { background: var(--danger-soft); border: 1px solid #FCA5A5; color: #991B1B; }
+.alert-success { background: var(--success-soft); border: 1px solid #86EFAC; color: #166534; }
+
+/* ---------- Misc ---------- */
+
+.text-center { text-align: center; }
+.mt-lg { margin-top: 32px; }
+
+.spinner {
+  width: 18px;
+  height: 18px;
+  border: 2px solid rgba(255, 255, 255, 0.5);
+  border-top-color: #fff;
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
+}
+
+@keyframes spin { to { transform: rotate(360deg); } }

@@ -1,0 +1,33 @@
+# Imagen de producción del frontend: compila la SPA y la sirve con nginx.
+# El Dockerfile normal arranca el servidor de desarrollo de Vite, que NO debe
+# usarse en producción (expone el websocket de recarga en caliente y los
+# mapas de fuente, y no minifica lo que sirve).
+
+# ── Etapa 1: compilar ────────────────────────────────────────────────────────
+FROM node:20-alpine AS build
+
+WORKDIR /app
+
+COPY package*.json ./
+# `npm ci` instala exactamente lo que fija el lockfile (reproducible),
+# a diferencia de `npm install` que puede resolver versiones nuevas.
+RUN npm ci
+
+COPY . .
+
+# NODE_ENV=production es imprescindible: sin él Vite compila con el runtime de
+# desarrollo de React (validaciones y avisos extra), y el paquete resultante
+# pesa más del doble.
+ENV NODE_ENV=production
+RUN npm run build
+
+# ── Etapa 2: servir ──────────────────────────────────────────────────────────
+# Solo se copia el resultado de la compilación: node_modules y el código fuente
+# no viajan a la imagen final.
+FROM nginx:1.27-alpine
+
+COPY --from=build /app/dist /usr/share/nginx/html
+COPY nginx.conf /etc/nginx/conf.d/default.conf
+
+EXPOSE 80
+CMD ["nginx", "-g", "daemon off;"]

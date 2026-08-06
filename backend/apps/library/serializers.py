@@ -1,0 +1,77 @@
+from rest_framework import serializers
+from apps.catalog.models import Course
+from apps.catalog.serializers import CourseListSerializer
+from .models import Enrollment, LessonProgress, Certificate, WishlistItem, StudyStreak
+
+
+class EnrolledCourseSerializer(serializers.ModelSerializer):
+    category_name = serializers.CharField(source='category.name', read_only=True)
+
+    class Meta:
+        model = Course
+        fields = ('id', 'title', 'slug', 'category_name')
+
+
+class LessonProgressSerializer(serializers.ModelSerializer):
+    lesson_title = serializers.CharField(source='lesson.title', read_only=True)
+
+    class Meta:
+        model = LessonProgress
+        fields = ('id', 'lesson', 'lesson_title', 'is_completed', 'watch_percentage', 'completed_at')
+        read_only_fields = ('completed_at',)
+
+
+class CertificateSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Certificate
+        fields = (
+            'issued_at', 'verification_code',
+            'student_name', 'course_title', 'course_duration_hours', 'completed_at',
+        )
+        read_only_fields = fields
+
+
+class EnrollmentSerializer(serializers.ModelSerializer):
+    course = EnrolledCourseSerializer(read_only=True)
+    lesson_progresses = LessonProgressSerializer(many=True, read_only=True)
+    certificate = CertificateSerializer(read_only=True)
+    final_exam = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Enrollment
+        fields = (
+            'id', 'course', 'enrollment_type',
+            'enrolled_at', 'progress_percentage',
+            'is_completed', 'lesson_progresses', 'certificate', 'final_exam'
+        )
+        read_only_fields = ('enrolled_at', 'progress_percentage', 'is_completed')
+
+    def get_final_exam(self, obj):
+        """
+        Estado del examen final del curso (None si el curso no tiene examen activo).
+        El frontend lo usa para decidir si mostrar 'Rendir examen final'.
+        """
+        from apps.exams.models import Exam
+        exam = Exam.objects.filter(course=obj.course, is_active=True).only('id').first()
+        if not exam:
+            return None
+        return {
+            'exam_id': exam.id,
+            'passed': obj.exam_attempts.filter(passed=True).exists(),
+        }
+
+
+class WishlistItemSerializer(serializers.ModelSerializer):
+    course = CourseListSerializer(read_only=True)
+
+    class Meta:
+        model = WishlistItem
+        fields = ('id', 'course', 'added_at')
+        read_only_fields = ('id', 'added_at')
+
+
+class StudyStreakSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = StudyStreak
+        fields = ('current_streak', 'longest_streak', 'last_activity_date')
+        read_only_fields = fields

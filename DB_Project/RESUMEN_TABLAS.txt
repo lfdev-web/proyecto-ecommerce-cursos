@@ -1,0 +1,344 @@
+============================================================
+RESUMEN DE LAS 50 TABLAS - E-COMMERCE DE CURSOS TECNOLOGICOS
+Base de datos: PostgreSQL 17
+============================================================
+
+NOTA SOBRE LAS TABLAS DE CATALOGO
+------------------------------------------------------------
+15 de las 50 tablas son catalogos (roles, estados, tipos,
+niveles). Todas usan clave primaria NATURAL: el codigo en
+texto en vez de un id numerico. Asi, al consultar la base se
+lee "cursos.estado = 'PUBLICADO'" en vez de "estado_id = 3",
+sin necesidad de un JOIN para entender el dato. Por eso esas
+tablas no tienen columna "id".
+
+============================================================
+MODULO 1: USUARIOS (10 tablas)
+============================================================
+
+1. roles  [catalogo]
+   Los tres papeles del sistema: ALUMNO, DOCENTE y ADMIN. La
+   columna "rol" de la tabla usuarios apunta aqui.
+
+2. usuarios
+   Guarda a todas las personas del sistema: alumnos, docentes y
+   administradores (se distinguen por la columna "rol"). Ademas de los
+   datos de cuenta (email unico, contrasena encriptada, nombres,
+   telefono, biografia, avatar), tiene dos columnas clave del modelo de
+   negocio: "saldo" (la billetera simulada de $500 con la que compran
+   cursos) y "codigo_referido" (codigo unico para el programa de
+   referidos). La columna "referido_por_id" apunta a la misma tabla:
+   indica que usuario invito a este (ambos ganan $10 de bono).
+
+3. usuarios_grupos
+   Tabla intermedia (relacion muchos-a-muchos) que asocia usuarios con
+   grupos de permisos. Permite dar permisos en bloque, por ejemplo un
+   grupo "Docentes" con permisos de edicion de cursos.
+
+4. usuarios_permisos
+   Tabla intermedia (muchos-a-muchos) que asocia usuarios con permisos
+   individuales, para excepciones puntuales que no ameritan crear un
+   grupo completo.
+
+5. tipos_transaccion_saldo  [catalogo]
+   Que origino un movimiento de la billetera: bono de bienvenida,
+   compra de cursos, pago de membresia o bono por referido.
+
+6. transacciones_saldo
+   Libro mayor de la billetera simulada. Cada movimiento deja registrado
+   el monto Y el saldo que quedo despues ("saldo_posterior"). Guardar el
+   saldo resultante permite auditar el historial completo sin tener que
+   recalcularlo sumando desde el principio.
+
+7. estados_recarga  [catalogo]
+   Ciclo de vida de una recarga: PENDIENTE (creada, esperando que el
+   usuario autorice en la pasarela), APROBADA, RECHAZADA (la pasarela
+   nego la tarjeta), CANCELADA (el usuario abandono el pago) y
+   EXPIRADA (pasaron mas de 15 minutos sin autorizar).
+
+8. recargas_saldo
+   Cada intento de recargar el saldo a traves de la pasarela de pago
+   simulada. Existe como registro propio, en vez de sumar al saldo de
+   una sola vez, porque el flujo tiene DOS pasos separados en el
+   tiempo: primero se crea la intencion con el monto y despues el
+   usuario autoriza en la pantalla de la pasarela.
+
+   Guardar el estado resuelve tres cosas: (1) el monto no viaja desde
+   el navegador al autorizar, se lee de aqui, asi nadie puede pedir $5
+   y acreditarse $5000; (2) una autorizacion reenviada no acredita dos
+   veces, porque la fila se bloquea y se verifica que siga PENDIENTE;
+   (3) queda historial de los intentos fallidos, no solo de los
+   exitosos.
+
+   El "token" es un UUID publico que viaja en la URL de la pasarela:
+   al no ser secuencial, nadie puede adivinar el de otro usuario.
+   Igual que en las ordenes, el numero de tarjeta nunca se guarda:
+   solo los cuatro ultimos digitos.
+
+9. estados_solicitud_docente  [catalogo]
+   Pendiente, aprobada o rechazada.
+
+10. solicitudes_docente
+   Postulacion de un alumno que quiere ensenar en la plataforma. Sube su
+   cedula (obligatoria) y opcionalmente un documento de credenciales,
+   con un titular y una biografia. El administrador la aprueba o la
+   rechaza indicando el motivo. Al aprobarla, el rol del usuario cambia
+   automaticamente a DOCENTE.
+
+============================================================
+MODULO 2: CATALOGO (8 tablas)
+============================================================
+
+11. niveles_curso  [catalogo]
+   Basico, intermedio y avanzado.
+
+12. estados_curso  [catalogo]
+    Ciclo de vida editorial: BORRADOR, EN_REVISION, PUBLICADO,
+    RECHAZADO. El catalogo publico solo muestra los PUBLICADO.
+
+13. categorias
+    Categorias tematicas para organizar el catalogo (ej. Programacion,
+    Datos, Redes). Nombre y slug unicos; el slug se usa en las URLs
+    amigables del frontend.
+
+14. cursos
+    El producto que se vende. Cada curso tiene titulo, descripcion,
+    precio, si esta activo (visible en el catalogo) y si es "mas
+    vendido" (etiqueta destacada). Pertenece a UNA categoria
+    (categoria_id, obligatoria) y tiene UN docente asignado
+    (instructor_id). Las columnas de flujo editorial registran la
+    aprobacion: el docente lo crea en BORRADOR, lo envia a revision
+    (fecha_envio) y el administrador lo publica (fecha_publicacion) o
+    lo rechaza escribiendo en notas_revision.
+
+15. lecciones
+    El contenido de cada curso: videos y/o texto. Cada leccion pertenece
+    a un curso, tiene un numero de "orden" dentro de el, la URL del
+    video, contenido textual y duracion en minutos.
+
+16. resenas
+    Opiniones de los alumnos sobre los cursos: calificacion numerica +
+    comentario. La restriccion UNIQUE (curso_id, usuario_id) garantiza
+    que un usuario solo pueda resenar cada curso UNA vez.
+
+17. estados_solicitud_cupo  [catalogo]
+    Pendiente, aprobada o rechazada.
+
+18. solicitudes_cupo
+    Un docente no puede publicar cursos sin limite: su plan de membresia
+    le da una cantidad de cupos. Para usar uno debe solicitarlo al
+    administrador, describiendo el curso que propone y justificandolo.
+    Cuando el docente finalmente crea el curso, la solicitud queda
+    marcada como consumida y se enlaza al curso creado, de modo que un
+    mismo cupo no se pueda usar dos veces.
+
+============================================================
+MODULO 3: ORDENES (7 tablas)
+============================================================
+
+19. estados_orden  [catalogo]
+    Pendiente, pagada, fallida o reembolsada.
+
+20. carritos
+    Carrito de compras. Cada usuario tiene exactamente UNO (restriccion
+    UNIQUE sobre usuario_id).
+
+21. carrito_items
+    Los cursos que hay en el carrito. No existe columna "cantidad"
+    porque un curso se compra una sola vez; la restriccion UNIQUE
+    (carrito_id, curso_id) impide agregarlo dos veces.
+
+22. cupones
+    Codigos de descuento por porcentaje, con fecha de expiracion
+    opcional y limite de usos ("usos_maximos = 0" significa ilimitado).
+    La columna "veces_usado" lleva la cuenta.
+
+23. ordenes
+    La compra confirmada. Guarda el monto total, el descuento aplicado y
+    la referencia de transaccion. Por cumplimiento PCI-DSS solo se
+    almacenan los CUATRO ULTIMOS DIGITOS de la tarjeta: nunca el numero
+    completo ni el CVV. El monto del descuento se congela en la orden
+    para que el historico no cambie si el cupon se modifica despues.
+
+24. orden_items
+    Los cursos incluidos en cada orden. El precio se congela al momento
+    de comprar ("precio_al_comprar"): si el curso sube de precio manana,
+    la orden de ayer sigue mostrando lo que realmente se pago.
+
+25. ganancias_docente
+    La comision que gana el instructor por cada curso vendido. La tasa
+    se congela en el momento de la venta ("tasa_comision") porque
+    depende del plan de membresia que el docente tenia entonces: el plan
+    Docente Oro da 80%, sin plan es 70%. Si el docente cambia de plan
+    despues, lo ya ganado no se recalcula. La restriccion UNIQUE sobre
+    orden_item_id garantiza que una misma venta no genere la comision
+    dos veces.
+
+============================================================
+MODULO 4: MEMBRESIAS (7 tablas)
+============================================================
+
+26. ciclos_facturacion  [catalogo]
+    Mensual o anual.
+
+27. audiencias_plan  [catalogo]
+    A quien va dirigido el plan: ALUMNO o DOCENTE. Son dos familias
+    distintas de planes con beneficios distintos.
+
+28. niveles_plan  [catalogo]
+    El escalon del plan dentro de su familia (bronce, plata, oro). La
+    columna "rango" permite ordenarlos y compararlos entre si.
+
+29. estados_membresia  [catalogo]
+    Activa, cancelada o expirada.
+
+30. planes_membresia
+    Los planes que se ofrecen. Segun la audiencia se usan unas columnas
+    u otras: para ALUMNO importa "porcentaje_descuento_miembro" (cuanto
+    ahorra en cada compra); para DOCENTE importan "cupos_curso" (cuantos
+    cursos puede publicar) y "porcentaje_comision_instructor" (cuanto se
+    lleva de cada venta).
+
+31. membresias_usuario
+    La suscripcion activa de una persona a un plan, con fecha de inicio,
+    expiracion y renovacion automatica. La restriccion UNIQUE
+    (usuario_id, audiencia) permite que alguien tenga a la vez una
+    membresia de alumno y una de docente, pero no dos de la misma
+    familia.
+
+32. pagos_membresia
+    Historial de cobros de cada membresia. Igual que en las ordenes,
+    solo se guardan los cuatro ultimos digitos de la tarjeta.
+
+============================================================
+MODULO 5: BIBLIOTECA (8 tablas)
+============================================================
+
+33. tipos_inscripcion  [catalogo]
+    Como obtuvo el alumno el acceso: COMPRA (lo pago) o MEMBRESIA
+    (lo incluye su plan).
+
+34. inscripciones
+    El acceso de un alumno a un curso. Es la tabla central de la
+    biblioteca: guarda el porcentaje de avance global, que se recalcula
+    automaticamente cada vez que se completa una leccion. La restriccion
+    UNIQUE (curso_id, usuario_id) impide inscribirse dos veces.
+
+35. progreso_lecciones
+    El detalle del avance: una fila por cada par (inscripcion, leccion),
+    indicando si esta completada, cuando, y que porcentaje del video se
+    vio.
+
+36. certificados
+    El certificado que se emite al completar el curso y aprobar el
+    examen final. Tiene un codigo de verificacion UUID para validarlo
+    desde fuera. El titulo del curso, el nombre del alumno y la duracion
+    se COPIAN aqui a proposito: si el curso cambia de nombre o el alumno
+    corrige el suyo, el certificado ya emitido no se altera.
+
+37. lista_deseos
+    Cursos que el alumno guardo para comprar despues.
+
+38. rachas_estudio
+    Gamificacion: cuantos dias seguidos ha estudiado el alumno
+    ("racha_actual") y su record historico ("racha_maxima"). Una fila
+    por usuario.
+
+39. medallas  [catalogo]
+    Catalogo de los logros que se pueden conseguir: primer curso
+    completado, examen perfecto, racha de 30 dias, primera resena, etc.
+    El icono y el orden se editan desde el panel de administracion sin
+    tocar el codigo.
+
+40. medallas_usuario
+    Que medallas ha ganado cada alumno y cuando. La restriccion UNIQUE
+    (medalla, usuario_id) evita otorgar dos veces la misma.
+
+============================================================
+MODULO 6: EXAMENES (5 tablas)
+============================================================
+
+41. examenes
+    El examen final del curso. Relacion 1:1 con el curso (UNIQUE sobre
+    curso_id). Define el tiempo limite, la nota minima para aprobar y
+    cuantos intentos se permiten ("intentos_maximos = 0" es ilimitado).
+    El cronometro lo controla el servidor, no el navegador, para que no
+    se pueda manipular.
+
+42. preguntas
+    Las preguntas de cada examen, con su orden y cuantos puntos vale
+    cada una.
+
+43. opciones_respuesta
+    Las opciones de cada pregunta (opcion multiple). La columna
+    "es_correcta" NUNCA viaja al navegador: el serializer que envia el
+    examen la omite deliberadamente, para que el alumno no pueda ver las
+    respuestas correctas inspeccionando el trafico de red.
+
+44. intentos_examen
+    Cada vez que un alumno rinde el examen. Se enlaza a la INSCRIPCION
+    (no directamente al usuario) porque el examen pertenece al curso en
+    el que esta inscrito. La restriccion UNIQUE (numero_intento,
+    inscripcion_id) numera los intentos de forma consecutiva. Si se
+    agota el tiempo, el intento se cierra con nota 0.
+
+45. respuestas_intento
+    Que respondio el alumno en cada pregunta de un intento. La opcion
+    elegida admite nulos: la pregunta pudo quedar sin responder. La
+    columna "es_correcta" es una foto del momento de calificar, asi que
+    si despues se corrige cual era la opcion correcta, las notas ya
+    dadas no cambian retroactivamente.
+
+============================================================
+MODULO 7: RECOMENDACIONES (3 tablas)
+============================================================
+
+46. tipos_interaccion  [catalogo]
+    Que hizo el usuario con el curso: verlo, agregarlo a la lista de
+    deseos, comprarlo, resenarlo. Cada tipo tiene un "peso"
+    configurable, porque una compra es una senal de interes mucho mas
+    fuerte que una simple visita.
+
+47. interacciones_usuario_curso
+    La matriz de entrada del modelo de filtrado colaborativo: cada fila
+    dice "este usuario interactuo asi con este curso". Es lo que el
+    algoritmo SVD analiza para encontrar patrones entre usuarios con
+    gustos parecidos.
+
+48. cache_recomendaciones
+    El resultado ya calculado para cada usuario, guardado como una lista
+    JSON de IDs de curso en orden de relevancia. Existe para no ejecutar
+    el modelo en cada peticion: una tarea programada lo reentrena cada
+    noche a las 3 a.m. y actualiza esta tabla; la API solo lee de aqui.
+
+============================================================
+MODULO 8: ANALITICA (2 tablas)
+============================================================
+
+49. registros_navegacion
+    Bitacora de todo lo que pasa en el sitio: busquedas, vistas de
+    curso, adiciones al carrito, compras. Funciona tanto para usuarios
+    identificados como anonimos (por eso usuario_id admite nulos y se
+    usa un id_sesion). La columna "metadatos" es de tipo JSONB: guarda
+    el detalle variable de cada tipo de evento (el termino buscado, los
+    filtros aplicados) sin necesidad de crear una columna por caso.
+
+50. embudo_conversion
+    La etapa mas avanzada que alcanzo cada sesion en el recorrido de
+    compra: VISTA -> CARRITO -> CHECKOUT -> COMPRA. Permite responder la
+    pregunta de negocio "cuantos llegaron al carrito pero no compraron"
+    sin tener que recorrer toda la bitacora de navegacion.
+
+============================================================
+RESUMEN
+============================================================
+Tablas propias del proyecto ......... 50
+  de las cuales son catalogos ....... 15
+Columnas ............................ 295
+Claves foraneas ..................... 64
+Restricciones UNIQUE ................ 25
+
+La base real tiene ademas 15 tablas de infraestructura de
+Django (autenticacion, sesiones, Celery Beat, blacklist de
+JWT) que no forman parte del diseno propio: 63 en total.
+============================================================

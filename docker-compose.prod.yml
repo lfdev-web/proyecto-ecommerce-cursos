@@ -1,0 +1,152 @@
+# Composición de PRODUCCIÓN.
+#
+# Diferencias respecto a docker-compose.yml (desarrollo):
+#   - El backend corre con gunicorn, no con `manage.py runserver`.
+#   - El frontend se COMPILA y lo sirve nginx; no corre el servidor de Vite.
+#   - nginx hace de proxy inverso: frontend y API quedan en el mismo origen,
+#     así que no hace falta CORS.
+#   - Postgres y Redis NO publican puertos al exterior: solo se llegan desde
+#     la red interna de Docker. En desarrollo se exponen para poder conectar
+#     DBeaver o Power BI; en un servidor público eso es una puerta abierta.
+#   - Sin volúmenes de código fuente: la imagen es inmutable.
+#
+# Cada servicio construido lleva su etiqueta `image:` propia (cursostech-*:prod).
+# Sin eso, Docker nombra las imágenes <proyecto>-<servicio> y este archivo
+# SOBRESCRIBIRÍA las imágenes de desarrollo, dejando el entorno local sirviendo
+# la build de producción.
+#
+# Uso:  docker compose -f docker-compose.prod.yml up -d --build
+# Antes: revisa DESPLIEGUE.md y completa el .env del servidor.
+
+services:
+  postgres_db:
+    image: postgres:17-alpine
+    container_name: postgres_db
+    restart: always
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POWERBI_READONLY_PASSWORD: ${POWERBI_READONLY_PASSWORD}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./backend/db/init.sh:/docker-entrypoint-initdb.d/init.sh
+    networks:
+      - ecommerce_net
+
+  redis:
+    image: redis:7-alpine
+    container_name: redis
+    restart: always
+    command: redis-server --requirepass ${REDIS_PASSWORD}
+    networks:
+      - ecommerce_net
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    image: cursostech-backend:prod
+    container_name: backend
+    restart: always
+    # collectstatic reúne los archivos del Django Admin en /app/static, que es
+    # el volumen que nginx sirve en /static/. Sin esto el admin se ve sin CSS.
+    # --workers 3: regla práctica (2 × núcleos + 1) para un servidor de 1 núcleo.
+    # OJO: los argumentos de gunicorn van todos en UNA línea. En un escalar
+    # plegado de YAML (>) las líneas más indentadas conservan el salto de línea,
+    # así que partirlos hacía que gunicorn arrancara sin --bind y escuchara en
+    # 127.0.0.1 — inalcanzable para nginx desde otro contenedor (502).
+    command: >
+      sh -c "python manage.py wait_for_db &&
+      python manage.py migrate --noinput &&
+      python manage.py collectstatic --noinput &&
+      gunicorn core.wsgi:application --bind 0.0.0.0:8000 --workers 3 --timeout 120 --access-logfile - --error-logfile -"
+    volumes:
+      - static_files:/app/static
+      - media_files:/app/media
+    env_file:
+      - .env
+    depends_on:
+      - postgres_db
+      - redis
+    networks:
+      - ecommerce_net
+
+  celery_worker:
+    # Mismo Dockerfile que el backend: reutiliza su imagen en vez de
+    # reconstruir lo mismo tres veces.
+    image: cursostech-backend:prod
+    container_name: celery_worker
+    restart: always
+    command: celery -A core worker --loglevel=warning -Q default --concurrency=4
+    volumes:
+      - media_files:/app/media
+    env_file:
+      - .env
+    depends_on:
+      - backend
+      - redis
+    networks:
+      - ecommerce_net
+
+  celery_worker_ml:
+    # Mismo Dockerfile que el backend: reutiliza su imagen en vez de
+    # reconstruir lo mismo tres veces.
+    image: cursostech-backend:prod
+    container_name: celery_worker_ml
+    restart: always
+    command: celery -A core worker --loglevel=warning -Q ml_queue --concurrency=1
+    env_file:
+      - .env
+    depends_on:
+      - backend
+      - redis
+    networks:
+      - ecommerce_net
+
+  celery_beat:
+    # Mismo Dockerfile que el backend: reutiliza su imagen en vez de
+    # reconstruir lo mismo tres veces.
+    image: cursostech-backend:prod
+    container_name: celery_beat
+    restart: always
+    command: >
+      sh -c "python manage.py wait_for_db &&
+             celery -A core beat --loglevel=warning --scheduler django_celery_beat.schedulers:DatabaseScheduler"
+    env_file:
+      - .env
+    depends_on:
+      - backend
+      - redis
+    networks:
+      - ecommerce_net
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile.prod
+    image: cursostech-frontend:prod
+    container_name: frontend
+    restart: always
+    # Único puerto publicado de todo el sistema. Para HTTPS, pon Caddy o
+    # Traefik delante, o monta tus certificados y añade un listen 443 en
+    # frontend/nginx.conf (ver DESPLIEGUE.md).
+    ports:
+      - "80:80"
+    volumes:
+      # Solo lectura: nginx sirve estos archivos, no los escribe.
+      - static_files:/app/static:ro
+      - media_files:/app/media:ro
+    depends_on:
+      - backend
+    networks:
+      - ecommerce_net
+
+volumes:
+  postgres_data:
+  static_files:
+  media_files:
+
+networks:
+  ecommerce_net:
+    driver: bridge

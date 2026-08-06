@@ -1,0 +1,591 @@
+/* Navbar estilo marketplace: barra blanca de ancho completo con borde inferior */
+.navbar {
+  position: sticky;
+  top: 0;
+  z-index: 50;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 14px 28px;
+  background: var(--surface);
+  border-bottom: 1px solid var(--surface-border);
+  box-shadow: var(--shadow-sm);
+}
+
+.navbar-brand {
+  font-family: var(--font-heading);
+  font-weight: 800;
+  font-size: 20px;
+  color: var(--accent);
+  letter-spacing: -0.02em;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.navbar-links {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+
+.navbar-links a { transition: color 0.15s ease; }
+.navbar-links a:hover { color: var(--text-primary); }
+
+.navbar-balance {
+  font-size: 13px;
+  color: var(--success);
+  font-weight: 700;
+  background: var(--success-soft);
+  padding: 4px 10px;
+  border-radius: 999px;
+}
+
+.course-card-img {
+  height: 140px;
+  border-radius: var(--radius-md);
+  background: var(--accent-soft);
+  color: var(--accent);
+  margin-bottom: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 40px;
+  overflow: hidden;
+}
+
+.course-card-img img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.course-card-price {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 12px;
+}
+
+.search-bar {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 24px;
+}
+
+.search-bar input {
+  flex: 1;
+  padding: 11px 14px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--surface-border);
+  background: #fff;
+  color: var(--text-primary);
+  font-size: 15px;
+  font-family: inherit;
+}
+
+.search-bar input:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-soft);
+}
+
+/* ---------- Hero del catálogo (patrón marketplace: la búsqueda es el CTA) ---------- */
+
+.catalog-hero {
+  background: linear-gradient(160deg, var(--accent-soft) 0%, #FFFFFF 70%);
+  border: 1px solid var(--surface-border);
+  border-radius: var(--radius-lg);
+  padding: 40px 32px;
+  margin-bottom: 28px;
+  text-align: center;
+}
+
+.catalog-hero h1 { font-size: 32px; margin-bottom: 6px; }
+.catalog-hero p { max-width: 560px; margin: 0 auto 20px; }
+
+.catalog-hero .hero-search {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  max-width: 560px;
+  margin: 0 auto;
+  background: #fff;
+  border: 1px solid var(--surface-border);
+  border-radius: 999px;
+  padding: 6px 8px 6px 18px;
+  box-shadow: var(--shadow-md);
+}
+
+.catalog-hero .hero-search svg { flex-shrink: 0; color: var(--text-muted); }
+
+.catalog-hero .hero-search input {
+  flex: 1;
+  min-width: 0;
+  border: none;
+  outline: none;
+  font-size: 15px;
+  font-family: inherit;
+  color: var(--text-primary);
+  background: transparent;
+}
+
+.catalog-hero .hero-search button { border-radius: 999px; }
+
+/* ---------- Barra de filtros del catálogo ---------- */
+
+.filter-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 12px;
+  padding: 14px 16px;
+  background: var(--surface);
+  border: 1px solid var(--surface-border);
+  border-radius: var(--radius-md);
+  margin-bottom: 24px;
+}
+
+.filter-bar label {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+
+.filter-bar select,
+.filter-bar input {
+  padding: 8px 10px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--surface-border);
+  background: #fff;
+  color: var(--text-primary);
+  font-size: 14px;
+  font-family: inherit;
+}
+
+.filter-bar select:focus,
+.filter-bar input:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-soft);
+}
+
+.filter-bar .filter-price { width: 90px; }
+
+.filter-clear {
+  background: none;
+  border: none;
+  color: var(--accent);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 8px 4px;
+  font-family: inherit;
+}
+.filter-clear:hover { color: var(--accent-hover); text-decoration: underline; }
+
+/* ---------- Calificación (estrellas SVG) ---------- */
+
+.rating {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  color: var(--text-primary);
+}
+
+.stars {
+  display: inline-flex;
+  align-items: center;
+  gap: 1px;
+  color: var(--warning);
+}
+
+.rating-count { color: var(--text-muted); }
+.rating-empty { font-size: 13px; color: var(--text-muted); }
+
+/* Texto solo para lectores de pantalla (las estrellas son aria-hidden) */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* Icono que acompaña a un texto en una línea (listas, avisos, badges) */
+.icon-text {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.icon-text svg { flex-shrink: 0; }
+
+/* Atribución del video: discreta pero siempre visible bajo el reproductor */
+.video-atribucion {
+  margin: 8px 0 0;
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.video-atribucion a {
+  color: var(--accent);
+  text-decoration: underline;
+}
+
+/* ---------- Recarga de saldo ---------- */
+
+.recarga-etiqueta {
+  display: block;
+  margin-bottom: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+
+.recarga-montos {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 10px;
+}
+
+.recarga-monto {
+  padding: 14px 6px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--surface-border);
+  background: var(--surface);
+  font-family: var(--font-heading);
+  font-size: 17px;
+  font-weight: 700;
+  color: var(--text-primary);
+  cursor: pointer;
+  transition: var(--transition);
+}
+
+.recarga-monto:hover { border-color: var(--accent); background: var(--accent-soft); }
+
+.recarga-monto.is-activo {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+  color: var(--accent-strong);
+  box-shadow: 0 0 0 3px var(--accent-soft);
+}
+
+@media (max-width: 480px) {
+  .recarga-montos { grid-template-columns: repeat(2, 1fr); }
+}
+
+/* ---------- Pasarela de pago simulada ----------
+   Identidad visual propia y deliberadamente distinta al resto del sitio: el
+   usuario debe percibir que "salió" de CursosTech, como ocurre con una
+   pasarela real. El aviso de simulación es permanente y no se oculta. */
+
+.pasarela {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px 16px;
+  background: linear-gradient(160deg, #1E1B2E 0%, #2D2545 100%);
+}
+
+.pasarela-caja {
+  width: 100%;
+  max-width: 420px;
+  background: var(--surface);
+  border-radius: var(--radius-lg);
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.35);
+  padding: 0 24px 24px;
+  overflow: hidden;
+}
+
+.pasarela-aviso {
+  margin: 0 -24px 20px;
+  padding: 9px 16px;
+  background: var(--warning-soft);
+  color: #92400E;
+  font-size: 12px;
+  font-weight: 700;
+  text-align: center;
+  letter-spacing: 0.02em;
+}
+
+.pasarela-marca {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  font-family: var(--font-heading);
+  font-size: 19px;
+  font-weight: 800;
+  color: #2D2545;
+  margin-bottom: 18px;
+}
+
+.pasarela-cobro {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  padding: 16px;
+  margin-bottom: 20px;
+  background: var(--surface-2);
+  border-radius: var(--radius-md);
+}
+
+.pasarela-cobro span { font-size: 13px; color: var(--text-secondary); }
+.pasarela-cobro strong { font-family: var(--font-heading); font-size: 30px; color: var(--text-primary); }
+
+.pasarela-input-icono { position: relative; display: flex; align-items: center; }
+.pasarela-input-icono svg { position: absolute; left: 12px; color: var(--text-muted); pointer-events: none; }
+.pasarela-input-icono input { padding-left: 38px; }
+
+.pasarela-resultado {
+  width: 64px;
+  height: 64px;
+  margin: 8px auto 0;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.pasarela-resultado.es-ok { background: var(--success-soft); color: #166534; }
+.pasarela-resultado.es-error { background: var(--danger-soft); color: #991B1B; }
+
+.pasarela-motivo {
+  padding: 12px;
+  background: var(--danger-soft);
+  border-radius: var(--radius-sm);
+  color: #991B1B;
+  font-size: 14px;
+}
+
+.pasarela-comprobante {
+  margin: 18px 0 0;
+  font-size: 14px;
+  text-align: left;
+}
+
+.pasarela-comprobante > div {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 8px 0;
+  border-top: 1px solid var(--surface-border);
+}
+
+.pasarela-comprobante dt { color: var(--text-secondary); margin: 0; }
+.pasarela-comprobante dd { margin: 0; font-weight: 600; font-variant-numeric: tabular-nums; }
+
+.pasarela-ayuda {
+  margin-top: 20px;
+  padding-top: 16px;
+  border-top: 1px solid var(--surface-border);
+  font-size: 13px;
+  color: var(--text-secondary);
+}
+
+.pasarela-ayuda summary { cursor: pointer; font-weight: 600; color: var(--accent); }
+.pasarela-ayuda-titulo { margin: 12px 0 4px; font-weight: 700; color: var(--text-primary); font-size: 12px; }
+.pasarela-ayuda ul { margin: 0; padding-left: 18px; line-height: 1.7; }
+.pasarela-ayuda code { font-size: 12px; background: var(--surface-2); padding: 1px 5px; border-radius: 4px; }
+
+/* ---------- Menú móvil ---------- */
+
+/* El botón hamburguesa solo existe en pantallas angostas */
+.navbar-toggle {
+  display: none;
+  background: none;
+  border: 1px solid var(--surface-border);
+  border-radius: var(--radius-sm);
+  padding: 7px;
+  cursor: pointer;
+  color: var(--text-primary);
+  line-height: 0;
+}
+
+@media (max-width: 900px) {
+  .navbar { padding: 12px 16px; }
+  .navbar-toggle { display: inline-flex; }
+
+  /* Los enlaces pasan de fila a panel desplegable bajo la barra */
+  .navbar-links {
+    display: none;
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 4px;
+    padding: 12px 16px 16px;
+    background: var(--surface);
+    border-bottom: 1px solid var(--surface-border);
+    box-shadow: var(--shadow-lg);
+  }
+
+  .navbar-links.is-open { display: flex; }
+
+  .navbar-links > a,
+  .navbar-links > button {
+    padding: 11px 12px;
+    border-radius: var(--radius-sm);
+    text-align: left;
+    justify-content: flex-start;
+  }
+
+  .navbar-links > a:hover { background: var(--surface-hover); }
+}
+
+/* ---------- Dashboard: barras horizontales ---------- */
+
+.hbar-row {
+  display: grid;
+  grid-template-columns: 180px 1fr 64px;
+  gap: 10px;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.hbar-label {
+  font-size: 13px;
+  color: var(--text-secondary);
+  text-align: right;
+}
+
+@media (max-width: 640px) {
+  /* La etiqueta pasa arriba de la barra: con 180px fijos no queda ancho útil */
+  .hbar-row { grid-template-columns: 1fr 52px; gap: 6px; }
+  .hbar-label { grid-column: 1 / -1; text-align: left; }
+}
+
+/* ---------- Perfil ---------- */
+
+.profile-header {
+  display: flex;
+  gap: 24px;
+  align-items: center;
+  flex-wrap: wrap;
+  margin-bottom: 16px;
+}
+
+.profile-header-info { flex: 1; min-width: 220px; }
+
+.profile-avatar,
+.profile-avatar-placeholder {
+  width: 96px;
+  height: 96px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.profile-avatar { object-fit: cover; border: 2px solid var(--surface-border); }
+
+.profile-avatar-placeholder {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-heading);
+  font-size: 34px;
+  font-weight: 700;
+  background: var(--accent-gradient);
+  color: #fff;
+}
+
+/* Medallas: la rejilla se adapta sola; las no conseguidas quedan en gris */
+.medal-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: 12px;
+}
+
+.medal {
+  text-align: center;
+  padding: 14px 8px;
+  border-radius: 12px;
+  border: 1px solid var(--surface-border);
+}
+
+.medal-earned { background: var(--surface-2); }
+
+.medal-locked {
+  opacity: 0.45;
+  filter: grayscale(1);
+}
+
+.medal-icon { font-size: 30px; line-height: 1.2; }
+.medal-name { font-size: 13px; display: block; margin-top: 4px; }
+.medal-hint { font-size: 11px; color: var(--text-secondary); }
+
+/* Tabla de movimientos del saldo */
+.txn-table { font-size: 14px; }
+.txn-table th {
+  text-align: left;
+  padding: 8px 6px;
+  color: var(--text-secondary);
+  font-weight: 600;
+  white-space: nowrap;
+}
+.txn-table td { padding: 8px 6px; }
+.txn-table tbody tr { border-top: 1px solid var(--surface-border); }
+.txn-date { white-space: nowrap; }
+.txn-amount { text-align: right; white-space: nowrap; }
+.txn-in { color: var(--success); }
+.txn-out { color: var(--danger); }
+
+@media (max-width: 640px) {
+  .profile-header { gap: 16px; }
+  .profile-avatar,
+  .profile-avatar-placeholder { width: 72px; height: 72px; }
+  .profile-avatar-placeholder { font-size: 26px; }
+  .medal-grid { grid-template-columns: repeat(auto-fill, minmax(118px, 1fr)); }
+}
+
+/* ---------- Ajustes responsive del catálogo ---------- */
+
+@media (max-width: 640px) {
+  .catalog-hero { padding: 28px 18px; }
+  .catalog-hero h1 { font-size: 25px; }
+  .catalog-hero p { font-size: 14px; }
+
+  /* La píldora de búsqueda no cabe en una línea: el botón baja debajo */
+  .catalog-hero .hero-search {
+    flex-wrap: wrap;
+    border-radius: var(--radius-lg);
+    padding: 12px 14px;
+    gap: 8px;
+  }
+  /* El input comparte fila con la lupa; solo el botón baja (flex-basis 100%) */
+  .catalog-hero .hero-search input { flex: 1 1 0; min-width: 0; }
+  .catalog-hero .hero-search button { flex: 1 1 100%; }
+
+  /* Los cinco filtros en fila no entran en 375px: rejilla de dos columnas */
+  .filter-bar {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    padding: 12px;
+  }
+  .filter-bar label { min-width: 0; }
+  .filter-bar select,
+  .filter-bar input {
+    width: 100%;
+    /* 13px para que "Todos los niveles" no choque con la flecha del select */
+    font-size: 13px;
+    padding: 8px 6px;
+  }
+  .filter-bar .filter-price { width: 100%; }
+  .filter-clear { grid-column: 1 / -1; text-align: left; }
+}
