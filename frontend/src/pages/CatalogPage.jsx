@@ -4,6 +4,8 @@ import api from '../api/client';
 import { useAuth } from '../context/AuthContext';
 import { SearchIcon, GraduationCapIcon, SparklesIcon } from '../components/Icons';
 import Rating from '../components/Rating';
+import Precio from '../components/Precio';
+import PromoCarousel from '../components/PromoCarousel';
 
 // Códigos de la tabla catálogo CourseLevel
 const LEVELS = [
@@ -41,7 +43,7 @@ function CourseCard({ course }) {
       </p>
       {'avg_rating' in course && <Rating value={course.avg_rating} count={course.review_count} />}
       <div className="course-card-price">
-        <strong style={{ fontSize: 18, color: 'var(--accent-strong)' }}>${course.price}</strong>
+        <Precio curso={course} />
       </div>
     </Link>
   );
@@ -112,6 +114,10 @@ export default function CatalogPage() {
           <button type="submit" className="btn btn-primary">Buscar</button>
         </form>
       </section>
+
+      {/* El carrete de ofertas solo en la vista sin filtros: si el usuario ya
+          está buscando algo concreto, estorba en vez de ayudar. */}
+      {!hasFilters && <PromoCarousel />}
 
       {recommended.length > 0 && !hasFilters && (
         <>

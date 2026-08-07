@@ -283,6 +283,39 @@ if not DEBUG:
         origin for origin in CORS_ALLOWED_ORIGINS if origin.startswith('https://')
     ]
 
+# ---------------------------------------------------------------------------
+# Correo
+# ---------------------------------------------------------------------------
+# Por defecto los correos se IMPRIMEN en la consola en vez de enviarse: así el
+# proyecto funciona recién clonado, sin credenciales, y se puede ver el
+# contenido completo en el log. Definiendo EMAIL_HOST se pasa a envío real.
+#
+# Para Gmail hace falta una "contraseña de aplicación" (no la del correo), que
+# se genera en myaccount.google.com/apppasswords con la verificación en dos
+# pasos activada.
+EMAIL_HOST = os.environ.get('EMAIL_HOST', '')
+
+if EMAIL_HOST:
+    EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+    EMAIL_PORT = int(os.environ.get('EMAIL_PORT', 587))
+    EMAIL_USE_TLS = os.environ.get('EMAIL_USE_TLS', 'True') == 'True'
+    EMAIL_HOST_USER = os.environ.get('EMAIL_HOST_USER', '')
+    EMAIL_HOST_PASSWORD = os.environ.get('EMAIL_HOST_PASSWORD', '')
+    EMAIL_TIMEOUT = 20
+else:
+    EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
+
+# Remitente. Gmail ignora un "from" que no sea la cuenta autenticada, así que
+# se usa EMAIL_HOST_USER como valor por defecto.
+DEFAULT_FROM_EMAIL = os.environ.get(
+    'DEFAULT_FROM_EMAIL',
+    f'CursosTech <{os.environ.get("EMAIL_HOST_USER", "no-reply@cursostech.local")}>',
+)
+
+# Nombre y URL que aparecen en los correos
+SITE_NAME = os.environ.get('SITE_NAME', 'CursosTech')
+SITE_URL = os.environ.get('SITE_URL', 'http://localhost:3000')
+
 # Cuántos proxies propios hay delante de Django (nginx = 1). Con 0 se ignora
 # X-Forwarded-For y se usa REMOTE_ADDR, que el cliente no puede falsificar.
 # Solo súbelo si de verdad hay un proxy tuyo reescribiendo la cabecera.

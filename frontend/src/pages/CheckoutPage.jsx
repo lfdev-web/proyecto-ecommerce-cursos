@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import api from '../api/client';
 import { useAuth } from '../context/AuthContext';
 import { StarIcon } from '../components/Icons';
+import Precio from '../components/Precio';
 
 export default function CheckoutPage() {
   const [cart, setCart] = useState(null);
@@ -67,7 +68,7 @@ export default function CheckoutPage() {
           {items.map((item) => (
             <div key={item.id} style={{ display: 'flex', justifyContent: 'space-between', padding: '8px 0', fontSize: 14 }}>
               <span style={{ color: 'var(--text-secondary)' }}>{item.course.title}</span>
-              <span>${item.course.price}</span>
+              <Precio curso={item.course} tamano={14} mostrarEtiqueta={false} />
             </div>
           ))}
           {memberPct > 0 && (

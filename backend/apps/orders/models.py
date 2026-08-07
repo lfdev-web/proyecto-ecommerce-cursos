@@ -13,7 +13,9 @@ class Cart(models.Model):
         return f"Cart for {self.user.email}"
 
     def get_total_price(self):
-        return sum(item.course.price for item in self.items.all())
+        # effective_price respeta la promoción vigente: si el curso está en
+        # oferta, el carrito muestra el precio rebajado, no el de lista.
+        return sum(item.course.effective_price for item in self.items.all())
 
 class CartItem(models.Model):
     cart = models.ForeignKey(Cart, on_delete=models.CASCADE, related_name='items')

@@ -100,6 +100,12 @@ class CourseListSerializer(serializers.ModelSerializer):
     avg_rating = serializers.SerializerMethodField()
     review_count = serializers.SerializerMethodField()
 
+    # Promoción: el frontend necesita los tres datos para pintar la tarjeta con
+    # el precio tachado, el nuevo y la etiqueta de descuento.
+    effective_price = serializers.DecimalField(max_digits=10, decimal_places=2, read_only=True)
+    is_on_promo = serializers.BooleanField(read_only=True)
+    promo_discount_pct = serializers.IntegerField(read_only=True)
+
     def get_avg_rating(self, obj):
         value = getattr(obj, 'avg_rating', None)
         return round(value, 1) if value is not None else None
@@ -112,7 +118,8 @@ class CourseListSerializer(serializers.ModelSerializer):
         fields = (
             'id', 'title', 'slug', 'instructor_name', 'category', 'price',
             'is_best_seller', 'level', 'level_name', 'language', 'cover_image',
-            'avg_rating', 'review_count', 'created_at'
+            'avg_rating', 'review_count', 'created_at',
+            'effective_price', 'is_on_promo', 'promo_discount_pct', 'promo_until',
         )
 
     def get_instructor_name(self, obj):

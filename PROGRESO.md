@@ -422,3 +422,66 @@ Defecto corregido durante la revisión: la etiqueta de nivel se superponía al t
 **Segundo hallazgo**: las tarjetas de «Recomendados para ti» seguían con el icono de relleno. `CourseRecommendationSerializer` no incluía `cover_image` ni el nivel, aunque el frontend reutiliza el mismo componente de tarjeta del catálogo. Se añadieron esos campos y, para no introducir un N+1 (una consulta por curso al leer categoría, nivel e instructor), se agregó `select_related` a las tres consultas de recomendaciones.
 
 Verificado: 30 de 30 portadas responden 200 (directo y por el proxy de Vite), y las recomendaciones y los cursos similares muestran su portada.
+
+## Sesión 2026-08-07 — Promociones y correos
+
+### Cuentas de demostración que no existían
+`seed_demo_data` no creaba `alumno@demo.com`, `docente@demo.com` ni
+`admin@demo.com` — esos los creaba `reset_demo_data`, que en el servidor nunca
+se ejecutó. El login fallaba sin explicación aparente. Ahora `seed_demo_data`
+las crea al final, sin historial, para que queden limpias para el recorrido.
+
+### Promociones por tiempo limitado
+Nuevos campos `promo_price` y `promo_until` en `Course`. El precio de lista
+nunca se modifica: al vencer la oferta el curso vuelve solo a su precio
+original. La promoción cuenta como vigente solo si el precio rebajado es MENOR
+al de lista, para que una carga mal hecha no termine cobrando de más.
+
+**Bug de dinero encontrado al implementarlo**: `OrderItem.price_at_purchase`
+guardaba el precio de LISTA. Con promociones eso significaba que la factura no
+cuadraría (las líneas no sumarían el total) y, peor, la comisión del docente se
+calcularía sobre un monto que la plataforma nunca cobró. Corregido a
+`effective_price`.
+
+**Anotación en base de datos**: `effective_price` es una propiedad de Python y
+el motor no la conoce, así que filtrar u ordenar por precio habría ignorado las
+ofertas — un curso rebajado de $39 a $27 no aparecería al filtrar "hasta $30".
+Se añadió `con_precio_efectivo()`, que anota el precio con un CASE. Verificado:
+la anotación SQL y la propiedad Python coinciden en los 30 cursos, sin
+desajustes; si divergieran, el catálogo mostraría un precio y el checkout
+cobraría otro.
+
+El componente `Precio.jsx` centraliza la presentación porque el precio aparece
+en cinco pantallas: si alguna mostrara el de lista mientras el checkout cobra el
+rebajado, parecería un error de cobro.
+
+### Correos
+Tres envíos, todos por Celery y con `transaction.on_commit`: el cobro ya está
+hecho y no debe depender de que el SMTP responda, ni encolarse antes de
+confirmar la transacción (Celery podría buscar la orden y no encontrarla).
+
+- **Factura** al completar la compra, con PDF nuevo (`templates/orders/invoice.html`).
+- **Certificado** al emitirse, solo la primera vez: `get_or_create` se ejecuta
+  cada vez que se completa una lección de un curso ya terminado, y sin esa
+  condición el alumno recibiría el mismo certificado una y otra vez.
+- **Comprobante** al aprobarse una recarga.
+
+Sin `EMAIL_HOST` definido, Django imprime los correos en la consola: el proyecto
+funciona recién clonado y el flujo se demuestra sin credenciales.
+
+**Detalle que habría roto el PDF en silencio**: el contexto de la plantilla del
+certificado en el correo no coincidía con el de la descarga (`duration_hours` en
+vez de `course_duration_hours`, `issued_at` como fecha en vez de texto). La
+plantilla habría renderizado los campos vacíos sin lanzar ningún error.
+
+**Celery no veía las tareas**: `autodiscover_tasks()` solo importa el módulo
+`tasks` de cada app, y las tareas vivían en `emails.py`. Se añadió
+`apps/common/tasks.py` que las importa para registrarlas.
+
+### Verificado
+Compra de un curso en oferta: lista $39.99, cobrado **$27.99**, carrito y
+factura coherentes. Los PDF salen con contenido real (factura 13 KB con el
+título del curso, certificado 12 KB con el nombre del alumno).
+
+`DB_Project` actualizado: 50 tablas y **310 columnas**, coincidiendo con la base
+real.

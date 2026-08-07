@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import api from '../api/client';
 import { CartIcon, GraduationCapIcon } from '../components/Icons';
+import Precio from '../components/Precio';
 
 export default function CartPage() {
   const [cart, setCart] = useState(null);
@@ -64,7 +65,7 @@ export default function CartPage() {
                   <div style={{ fontSize: 13, color: 'var(--text-muted)' }}>{item.course.instructor_name}</div>
                 )}
               </div>
-              <strong style={{ fontSize: 16 }}>${item.course.price}</strong>
+              <Precio curso={item.course} tamano={16} mostrarEtiqueta={false} />
               <button className="btn btn-secondary" onClick={() => handleRemove(item.course.id)}>Quitar</button>
             </div>
           ))}

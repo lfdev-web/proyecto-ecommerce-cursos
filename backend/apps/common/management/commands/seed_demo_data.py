@@ -519,7 +519,39 @@ class Command(BaseCommand):
         self.stdout.write(f'  {len(lessons)} lecciones ({con_video} con video)')
 
         self._seed_examenes(courses)
+        self._seed_promociones(courses)
         return courses
+
+    # ------------------------------------------------------------------
+    def _seed_promociones(self, courses):
+        """
+        Deja algunos cursos en oferta para que el carrete de la portada tenga
+        contenido desde el primer arranque. Las fechas de término se reparten
+        para que la cuenta regresiva muestre plazos distintos y no todos
+        vencan el mismo día.
+        """
+        OFERTAS = [
+            ('machine-learning-con-scikit-learn', 40, 2),
+            ('flutter-apps-multiplataforma', 35, 4),
+            ('react-en-la-practica', 30, 3),
+            ('docker-desde-cero', 30, 5),
+            ('hacking-etico-y-pruebas-de-penetracion', 25, 7),
+            ('sql-para-analisis-de-datos', 20, 10),
+        ]
+        por_slug = {c.slug: c in courses and c for c in courses}
+        ahora = timezone.now()
+        aplicadas = 0
+        for slug, pct, dias in OFERTAS:
+            course = por_slug.get(slug)
+            if not course:
+                continue
+            course.promo_price = (
+                course.price * Decimal(100 - pct) / Decimal(100)
+            ).quantize(Decimal('0.01'))
+            course.promo_until = ahora + timedelta(days=dias)
+            course.save(update_fields=['promo_price', 'promo_until'])
+            aplicadas += 1
+        self.stdout.write(f'  {aplicadas} cursos en oferta (carrete de la portada)')
 
     # ------------------------------------------------------------------
     def _dar_plan_docente(self, docentes, start):

@@ -205,3 +205,53 @@ docker compose -f docker-compose.prod.yml up -d --build
 ```
 
 Las migraciones se aplican solas al arrancar el backend.
+
+---
+
+## Correo (opcional pero recomendado)
+
+Sin configurar nada, los correos se **imprimen en el log** del worker de Celery
+en vez de enviarse. El flujo se puede demostrar completo así. Para que salgan de
+verdad, con Gmail:
+
+1. Activa la **verificación en dos pasos** en tu cuenta de Google.
+2. Genera una **contraseña de aplicación** en `myaccount.google.com/apppasswords`
+   (son 16 caracteres, no es la contraseña de tu correo).
+3. Añade al `.env` del servidor:
+
+```bash
+EMAIL_HOST=smtp.gmail.com
+EMAIL_PORT=587
+EMAIL_USE_TLS=True
+EMAIL_HOST_USER=tucorreo@gmail.com
+EMAIL_HOST_PASSWORD=xxxxxxxxxxxxxxxx
+DEFAULT_FROM_EMAIL=CursosTech <tucorreo@gmail.com>
+SITE_NAME=CursosTech
+SITE_URL=https://lfldev.online
+```
+
+4. Reinicia el backend y el worker:
+
+```bash
+docker compose -f docker-compose.prod.yml up -d backend celery_worker
+```
+
+Gmail **ignora un remitente distinto a la cuenta autenticada**, así que
+`DEFAULT_FROM_EMAIL` debe usar el mismo correo de `EMAIL_HOST_USER`. El límite
+es de unos 500 correos al día.
+
+### Qué se envía
+
+| Cuándo | Contenido |
+|---|---|
+| Al completar una compra | Factura en PDF con el detalle y el descuento aplicado |
+| Al emitirse un certificado | Certificado en PDF, solo la primera vez |
+| Al aprobarse una recarga | Comprobante con la referencia y el saldo resultante |
+
+Los tres salen por **Celery**, nunca dentro de la petición: si el SMTP está
+caído, la compra sigue siendo válida y el fallo solo queda en el log. Verificar
+que se enviaron:
+
+```bash
+docker compose -f docker-compose.prod.yml logs celery_worker | grep "Correo enviado"
+```

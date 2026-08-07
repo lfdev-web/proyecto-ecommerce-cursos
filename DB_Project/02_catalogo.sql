@@ -78,6 +78,15 @@ CREATE TABLE public.cursos (
     fecha_publicacion timestamp with time zone,
     estado character varying(20) NOT NULL,
 
+    -- Promoción por tiempo limitado. El precio de lista NUNCA se modifica:
+    -- la oferta vive en estas dos columnas, así se puede mostrar el precio
+    -- tachado y al vencer la promoción el curso vuelve solo a su precio
+    -- original sin tener que restaurar nada.
+    -- La oferta cuenta como vigente solo si precio_promocional es MENOR al
+    -- precio y la fecha no ha pasado (o está vacía = sin término).
+    precio_promocional numeric(10,2),
+    promocion_hasta timestamp with time zone,
+
     CONSTRAINT uq_cursos_slug UNIQUE (slug)
 );
 

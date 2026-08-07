@@ -189,6 +189,12 @@ class RechargeAuthorizeView(APIView):
                 description=f'Recarga de saldo — {recarga.reference}',
             )
 
+            # Comprobante por correo, fuera de la transacción y en segundo
+            # plano: el saldo ya está acreditado y no debe depender del SMTP.
+            from apps.common.emails import enviar_comprobante_recarga
+            recarga_id = recarga.id
+            transaction.on_commit(lambda: enviar_comprobante_recarga.delay(recarga_id))
+
         return Response({
             'recharge': WalletRechargeSerializer(recarga).data,
             'balance': str(usuario.balance),

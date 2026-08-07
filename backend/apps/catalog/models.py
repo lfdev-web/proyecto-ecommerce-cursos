@@ -1,6 +1,8 @@
 from django.db import models
+from django.db.models import Case, DecimalField, F, When
 from django.conf import settings
 from django.core.validators import MinValueValidator, MaxValueValidator
+from django.utils import timezone
 
 class CourseLevel(models.Model):
     """
@@ -103,11 +105,76 @@ class Course(models.Model):
     requirements = models.TextField(blank=True, default='')
     learning_outcomes = models.TextField(blank=True, default='')
     
+    # --- Promoción por tiempo limitado ---
+    # El precio de lista NUNCA se modifica: la oferta vive en estos dos campos.
+    # Así se puede mostrar el precio tachado, y al terminar la promoción el
+    # curso vuelve solo a su precio original sin tener que restaurar nada.
+    promo_price = models.DecimalField(
+        max_digits=10, decimal_places=2, null=True, blank=True,
+        help_text='Precio rebajado. Déjalo vacío si el curso no está en oferta.',
+    )
+    promo_until = models.DateTimeField(
+        null=True, blank=True,
+        help_text='Fin de la oferta. Vacío = sin fecha de término.',
+    )
+
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
     def __str__(self):
         return self.title
+
+    # ------------------------------------------------------------------
+    @property
+    def is_on_promo(self):
+        """
+        La oferta cuenta solo si hay precio rebajado, es MENOR al de lista y
+        no ha vencido. Comprobar que sea menor evita que una promoción mal
+        cargada termine cobrando de más.
+        """
+        if self.promo_price is None or self.promo_price >= self.price:
+            return False
+        return self.promo_until is None or self.promo_until > timezone.now()
+
+    @property
+    def effective_price(self):
+        """El precio que se le cobra realmente al alumno."""
+        return self.promo_price if self.is_on_promo else self.price
+
+    @property
+    def promo_discount_pct(self):
+        """Porcentaje de descuento, para la etiqueta del carrete."""
+        if not self.is_on_promo:
+            return 0
+        return int(round((1 - (self.promo_price / self.price)) * 100))
+
+
+def con_precio_efectivo(queryset):
+    """
+    Anota `precio_efectivo` en la consulta.
+
+    Hace falta porque `effective_price` es una propiedad de Python y la base de
+    datos no la conoce: sin esto, filtrar por rango de precio u ordenar por
+    precio usaría el de lista e ignoraría las ofertas — un curso rebajado a $27
+    no aparecería al filtrar "hasta $30".
+    """
+    ahora = timezone.now()
+    return queryset.annotate(
+        precio_efectivo=Case(
+            When(
+                promo_price__isnull=False,
+                promo_price__lt=F('price'),
+                then=Case(
+                    When(promo_until__isnull=True, then=F('promo_price')),
+                    When(promo_until__gt=ahora, then=F('promo_price')),
+                    default=F('price'),
+                ),
+            ),
+            default=F('price'),
+            output_field=DecimalField(max_digits=10, decimal_places=2),
+        )
+    )
+
 
 class Lesson(models.Model):
     course = models.ForeignKey(Course, on_delete=models.CASCADE, related_name='lessons')

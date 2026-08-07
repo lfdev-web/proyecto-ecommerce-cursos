@@ -1,7 +1,8 @@
 from django.db.models import Q, Avg, Count, Prefetch, F
+from django.utils import timezone
 from rest_framework import generics, permissions
 from rest_framework.exceptions import PermissionDenied
-from .models import Category, Course, CourseStatus, Review
+from .models import Category, Course, CourseStatus, Review, con_precio_efectivo
 from .serializers import CategorySerializer, CourseListSerializer, CourseDetailSerializer, ReviewSerializer
 
 
@@ -10,8 +11,12 @@ def _course_queryset_with_stats():
     Base del catálogo público: solo cursos activos YA PUBLICADOS (los borradores
     y los que están en revisión no se ven). Trae calificación y nº de reseñas
     anotados en una sola consulta, con los FK precargados (evita N+1).
+
+    `precio_efectivo` se anota para que filtrar y ordenar por precio tenga en
+    cuenta las promociones vigentes: un curso rebajado de $39 a $27 debe
+    aparecer al filtrar "hasta $30".
     """
-    return (
+    return con_precio_efectivo(
         Course.objects.filter(is_active=True, status_id=CourseStatus.PUBLISHED)
         .select_related('category', 'instructor', 'level')
         .annotate(
@@ -31,10 +36,12 @@ class CourseListView(generics.ListAPIView):
     serializer_class = CourseListSerializer
     permission_classes = [permissions.AllowAny]
 
-    # Órdenes permitidos (whitelist: el query param nunca llega crudo al ORM)
+    # Órdenes permitidos (whitelist: el query param nunca llega crudo al ORM).
+    # El orden por precio usa el efectivo, no el de lista: si no, un curso en
+    # oferta aparecería en la posición de su precio original.
     ORDERINGS = {
-        'price': 'price',
-        '-price': '-price',
+        'price': 'precio_efectivo',
+        '-price': '-precio_efectivo',
         '-rating': '-avg_rating',
         '-created': '-created_at',
     }
@@ -59,7 +66,10 @@ class CourseListView(generics.ListAPIView):
             queryset = queryset.filter(level_id=level.upper())
 
         # Filtro por rango de precio (se ignoran valores no numéricos)
-        for param, lookup in (('price_min', 'price__gte'), ('price_max', 'price__lte')):
+        # El rango de precio filtra por el efectivo: quien busca "hasta $30"
+        # espera ver un curso de $39 rebajado a $27.
+        for param, lookup in (('price_min', 'precio_efectivo__gte'),
+                              ('price_max', 'precio_efectivo__lte')):
             raw = params.get(param, None)
             if raw:
                 try:
@@ -75,6 +85,29 @@ class CourseListView(generics.ListAPIView):
         elif ordering:
             queryset = queryset.order_by(ordering)
         return queryset
+
+
+class PromotedCoursesView(generics.ListAPIView):
+    """
+    Cursos con promoción VIGENTE, para el carrete de ofertas de la portada.
+
+    Se ordenan por el mayor descuento primero: lo que se quiere destacar es la
+    oferta más atractiva, no el curso más caro ni el más nuevo.
+    """
+    serializer_class = CourseListSerializer
+    permission_classes = [permissions.AllowAny]
+
+    def get_queryset(self):
+        ahora = timezone.now()
+        queryset = (
+            _course_queryset_with_stats()
+            .filter(promo_price__isnull=False, promo_price__lt=F('price'))
+            .filter(Q(promo_until__isnull=True) | Q(promo_until__gt=ahora))
+        )
+        # Se ordena en Python por el porcentaje real de descuento: expresarlo
+        # en SQL exigiría una división que complica la consulta sin ganar nada,
+        # porque el carrete muestra a lo sumo una docena de cursos.
+        return sorted(queryset, key=lambda c: c.promo_discount_pct, reverse=True)[:12]
 
 
 class CourseDetailView(generics.RetrieveAPIView):

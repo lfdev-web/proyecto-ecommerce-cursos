@@ -79,7 +79,10 @@ class CheckoutView(APIView):
         card_last4 = card_number.replace(' ', '').replace('-', '')[-4:]
 
         from decimal import Decimal
-        original_amount = sum(item.course.price for item in items)
+        # Se parte del precio EFECTIVO: si el curso está en promoción vigente,
+        # la base del cálculo es el precio rebajado. El descuento por cupón o
+        # membresía se aplica después, sobre ese monto ya rebajado.
+        original_amount = sum(item.course.effective_price for item in items)
 
         # --- Descuentos: se aplica el MAYOR entre el cupón y la membresía activa,
         # no se suman (el cliente recibe el mejor descuento disponible). ---
@@ -154,7 +157,12 @@ class CheckoutView(APIView):
             order_item = OrderItem.objects.create(
                 order=order,
                 course=item.course,
-                price_at_purchase=item.course.price
+                # Precio EFECTIVO, no el de lista: si el curso estaba en
+                # promoción, es lo que realmente se cobró. Guardar el de lista
+                # descuadraría la factura (las líneas no sumarían el total) y,
+                # peor, la comisión del docente se calcularía sobre un monto
+                # que la plataforma nunca cobró.
+                price_at_purchase=item.course.effective_price
             )
             # Comisión del docente por la venta (70/30, si el curso tiene instructor)
             InstructorEarning.create_for_order_item(order_item)
@@ -167,7 +175,16 @@ class CheckoutView(APIView):
             
         # Limpiar carrito
         items.delete()
-        
+
+        # La factura se envía por Celery y solo DESPUÉS de confirmar la
+        # transacción: el cobro ya está hecho y no debe depender de que el
+        # servidor de correo responda. Si el SMTP falla, la compra sigue siendo
+        # válida y el fallo queda en el log.
+        from django.db import transaction as _tx
+        from apps.common.emails import enviar_factura
+        orden_id = order.id
+        _tx.on_commit(lambda: enviar_factura.delay(orden_id))
+
         return Response({
             'detail': 'Compra completada exitosamente.',
             'order_id': order.id

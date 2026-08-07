@@ -29,13 +29,28 @@ class CourseAdmin(admin.ModelAdmin):
     Bandeja de revisión de cursos. Los cursos que el docente envía llegan en
     estado "En revisión"; desde aquí se publican o se devuelven con observaciones.
     """
-    list_display = ('title', 'instructor', 'category', 'price', 'status', 'is_active', 'is_best_seller', 'created_at')
+    list_display = (
+        'title', 'instructor', 'category', 'price', 'promo_price', 'en_oferta',
+        'status', 'is_active', 'is_best_seller', 'created_at',
+    )
     list_filter = ('status', 'is_active', 'is_best_seller', 'category')
+    list_editable = ('promo_price',)
     search_fields = ('title', 'description', 'instructor__email')
     prepopulated_fields = {'slug': ('title',)}
     readonly_fields = ('is_best_seller', 'submitted_at', 'published_at')
     inlines = [LessonInline]
-    actions = ['publicar_cursos', 'devolver_cursos']
+    actions = ['publicar_cursos', 'devolver_cursos', 'quitar_promocion']
+
+    @admin.display(description='En oferta', boolean=True)
+    def en_oferta(self, obj):
+        """Muestra si la promoción está VIGENTE, no solo si tiene precio puesto."""
+        return obj.is_on_promo
+
+    @admin.action(description='Quitar la promoción de los cursos seleccionados')
+    def quitar_promocion(self, request, queryset):
+        total = queryset.filter(promo_price__isnull=False).update(
+            promo_price=None, promo_until=None)
+        self.message_user(request, f'{total} curso(s) vuelven a su precio de lista.')
 
     @admin.action(description='Publicar cursos seleccionados')
     def publicar_cursos(self, request, queryset):

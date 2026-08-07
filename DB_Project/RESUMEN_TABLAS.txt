@@ -111,6 +111,12 @@ MODULO 2: CATALOGO (8 tablas)
     (fecha_envio) y el administrador lo publica (fecha_publicacion) o
     lo rechaza escribiendo en notas_revision.
 
+    Las columnas "precio_promocional" y "promocion_hasta" manejan las
+    ofertas por tiempo limitado. El precio de lista nunca se toca: al
+    vencer la promocion el curso vuelve solo a su precio original. La
+    oferta cuenta solo si el precio promocional es MENOR al de lista, para
+    que una promocion mal cargada no termine cobrando de mas.
+
 15. lecciones
     El contenido de cada curso: videos y/o texto. Cada leccion pertenece
     a un curso, tiene un numero de "orden" dentro de el, la URL del

@@ -95,7 +95,7 @@ def _issue_certificate_if_needed(enrollment):
     course = enrollment.course
     from decimal import Decimal
     total_minutes = sum(course.lessons.values_list('duration_minutes', flat=True))
-    Certificate.objects.get_or_create(
+    certificado, creado = Certificate.objects.get_or_create(
         enrollment=enrollment,
         defaults={
             'student_name': user.get_full_name() or user.email,
@@ -104,6 +104,16 @@ def _issue_certificate_if_needed(enrollment):
             'completed_at': timezone.now(),
         }
     )
+
+    # Solo al EMITIRLO por primera vez: get_or_create se ejecuta cada vez que
+    # se completa una lección de un curso ya terminado, y sin esta condición el
+    # alumno recibiría el mismo certificado una y otra vez.
+    if creado:
+        from django.db import transaction as _tx
+        from apps.common.emails import enviar_certificado
+        # on_commit: si se encolara antes de confirmar la transacción, Celery
+        # podría buscar el certificado y no encontrarlo todavía.
+        _tx.on_commit(lambda: enviar_certificado.delay(certificado.id))
 
 
 @receiver(post_save, sender=Enrollment)

@@ -245,6 +245,146 @@
   text-decoration: underline;
 }
 
+/* ---------- Carrete de ofertas ---------- */
+
+.promo-seccion { margin-bottom: 36px; }
+
+.promo-encabezado {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 14px;
+}
+
+.promo-encabezado h2 { margin: 0; }
+
+.promo-flechas { display: flex; gap: 8px; }
+
+.promo-flechas button {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  border: 1px solid var(--surface-border);
+  background: var(--surface);
+  color: var(--text-primary);
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: var(--transition);
+}
+
+.promo-flechas button:hover:not(:disabled) {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.promo-flechas button:disabled { opacity: 0.35; cursor: default; }
+
+/* Pista con desplazamiento horizontal y anclaje: cada tarjeta queda alineada
+   al soltar, en vez de a medio camino. */
+.promo-pista {
+  display: flex;
+  gap: 16px;
+  overflow-x: auto;
+  scroll-snap-type: x mandatory;
+  padding-bottom: 6px;
+  scrollbar-width: thin;
+}
+
+.promo-pista::-webkit-scrollbar { height: 6px; }
+.promo-pista::-webkit-scrollbar-thumb {
+  background: var(--surface-border);
+  border-radius: 999px;
+}
+
+.promo-tarjeta {
+  flex: 0 0 240px;
+  scroll-snap-align: start;
+  background: var(--surface);
+  border: 1px solid var(--surface-border);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  box-shadow: var(--shadow-sm);
+  transition: var(--transition);
+  display: flex;
+  flex-direction: column;
+}
+
+.promo-tarjeta:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md);
+  border-color: var(--accent);
+}
+
+.promo-imagen {
+  position: relative;
+  height: 128px;
+  background: var(--accent-soft);
+  color: var(--accent);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+
+.promo-imagen img { width: 100%; height: 100%; object-fit: cover; }
+
+/* La etiqueta de descuento va en rojo y no en el morado de marca: es la
+   señal que debe destacar sobre todo lo demás de la tarjeta. */
+.promo-etiqueta {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  background: var(--danger);
+  color: #fff;
+  font-family: var(--font-heading);
+  font-size: 13px;
+  font-weight: 800;
+  padding: 4px 10px;
+  border-radius: 999px;
+  letter-spacing: 0.01em;
+}
+
+.promo-cuerpo { padding: 14px; display: flex; flex-direction: column; gap: 4px; flex: 1; }
+
+.promo-cuerpo h3 {
+  margin: 0;
+  font-size: 15px;
+  line-height: 1.3;
+  /* Dos líneas como máximo: así todas las tarjetas quedan a la misma altura */
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.promo-categoria { margin: 0; font-size: 12px; color: var(--text-muted); }
+
+.promo-precios {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  margin-top: auto;
+  padding-top: 8px;
+}
+
+.promo-precios strong {
+  font-family: var(--font-heading);
+  font-size: 20px;
+  color: var(--accent-strong);
+}
+
+.promo-precios s { font-size: 13px; color: var(--text-muted); }
+
+.promo-plazo { font-size: 11px; font-weight: 700; color: var(--danger); }
+
+@media (max-width: 640px) {
+  .promo-tarjeta { flex: 0 0 200px; }
+  .promo-flechas { display: none; }   /* en móvil se desliza con el dedo */
+}
+
 /* ---------- Recarga de saldo ---------- */
 
 .recarga-etiqueta {

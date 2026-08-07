@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import api from '../api/client';
 import { GraduationCapIcon, HeartIcon } from '../components/Icons';
+import Precio from '../components/Precio';
 
 export default function WishlistPage() {
   const [items, setItems] = useState([]);
@@ -67,7 +68,7 @@ export default function WishlistPage() {
               <p style={{ margin: '0 0 8px', fontSize: 13 }}>{item.course.instructor_name}</p>
             )}
             <div className="course-card-price">
-              <strong style={{ fontSize: 18 }}>${item.course.price}</strong>
+              <Precio curso={item.course} />
             </div>
             <div style={{ display: 'flex', gap: 8, marginTop: 12 }}>
               <button className="btn btn-primary" style={{ flex: 1 }} onClick={() => handleAddToCart(item.course.id)}>

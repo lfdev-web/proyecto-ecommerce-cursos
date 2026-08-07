@@ -4,6 +4,7 @@ import api from '../api/client';
 import { useAuth } from '../context/AuthContext';
 import { Stars } from '../components/Rating';
 import { CheckIcon, GraduationCapIcon, HeartIcon } from '../components/Icons';
+import Precio from '../components/Precio';
 
 // Convierte un TextField multilínea ("- item\n- item") en una lista limpia.
 function textToList(text) {
@@ -228,7 +229,16 @@ export default function CourseDetailPage() {
               : <GraduationCapIcon width={44} height={44} strokeWidth={1.5} />}
           </div>
           <div style={{ padding: 20 }}>
-            <div style={{ fontSize: 30, fontWeight: 800, marginBottom: 14 }}>${course.price}</div>
+            <div style={{ marginBottom: 14 }}>
+              <Precio curso={course} tamano={30} />
+              {course.is_on_promo && course.promo_until && (
+                <p className="promo-plazo" style={{ margin: '6px 0 0' }}>
+                  Oferta hasta el {new Date(course.promo_until).toLocaleDateString('es-EC', {
+                    day: 'numeric', month: 'long',
+                  })}
+                </p>
+              )}
+            </div>
             {message && <div className={`alert alert-${message.type}`}>{message.text}</div>}
             {course.is_enrolled ? (
               <Link to="/mi-biblioteca" className="btn btn-primary btn-block">Ya estás inscrito — ir a mi biblioteca</Link>
