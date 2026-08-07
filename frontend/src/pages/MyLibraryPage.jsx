@@ -72,6 +72,9 @@ export default function MyLibraryPage() {
             tus cursos, y emite los certificados. Se generan los mismos registros
             que si los hubieras hecho a mano; las entregas quedan marcadas como
             automáticas. Solo esta cuenta puede hacerlo.
+            <br />
+            Cada certificado se envía por correo <strong>una sola vez</strong>, al
+            emitirlo: si vuelves a pulsar el botón no se reenvía nada.
           </p>
           <button className="btn btn-primary" disabled={completando} onClick={handleCompletarTodo}>
             <ZapIcon width={16} height={16} />

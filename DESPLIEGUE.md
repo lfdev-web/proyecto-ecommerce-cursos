@@ -154,17 +154,28 @@ Los tres cursos del docente (`Python desde cero`, `React en la práctica` y
 así el docente lo ve en su lista de alumnos y las dos pantallas se sostienen
 entre sí.
 
-#### Repetir el recorrido
-
-Después de un ensayo, para que el alumno vuelva a empezar de cero:
+#### Repetir el recorrido después de un ensayo
 
 ```bash
-docker compose -f docker-compose.prod.yml exec backend python manage.py cuentas_demo --limpiar-alumno
+docker compose -f docker-compose.prod.yml exec backend python manage.py cuentas_demo --ensayo
 ```
 
-Vacía su biblioteca (inscripciones, progreso, entregas y certificados) y le
-repone el saldo. **Sus órdenes NO se borran**: son el historial de compras y el
-docente cobró comisión por ellas — borrarlas descuadraría su panel.
+Deja las dos cuentas de alumno en su punto de partida:
+
+- **`alumno@demo.com`**: biblioteca vacía y saldo repuesto. **Sus órdenes NO se
+  borran** — son el historial de compras y el docente cobró comisión por ellas;
+  borrarlas descuadraría su panel.
+- **`revisor@demo.com`**: certificados y progreso borrados, pero conserva sus
+  seis cursos.
+
+> **Por qué hay que reiniciar al revisor para enseñar los correos.** Un
+> certificado se emite —y se envía— **una sola vez**. Si ya está emitido,
+> pulsar el botón de recorrido rápido no manda ningún correo; solo vuelve a
+> confirmar lo que ya estaba hecho. La respuesta lo dice explícitamente
+> («X ya estaban emitidos de antes… no se reenvían por correo»), pero si lo
+> que quieres es que el revisor VEA llegar el correo, hay que reiniciar antes.
+>
+> Con `--limpiar-alumno` y `--limpiar-revisor` se puede hacer por separado.
 
 > `revisor@demo.com` existe porque completar un curso a mano son siete
 > lecciones, un cuestionario y una entrega, y quien revisa la plataforma

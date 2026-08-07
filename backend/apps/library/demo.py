@@ -115,6 +115,13 @@ def completar_inscripcion(enrollment):
     algún día se agrega una tercera actividad, este atajo se quedará corto y el
     certificado no saldrá — que es exactamente lo que debe pasar.
     """
+    # Si el certificado YA existía, la señal no vuelve a emitirlo y por tanto
+    # tampoco manda el correo — un certificado se envía una sola vez, si no
+    # cada pulsación del botón sería un correo repetido. Hay que distinguir
+    # los dos casos: decir "emitido" cuando en realidad ya estaba haría creer
+    # que el correo salió cuando no salió nada.
+    ya_tenia = Certificate.objects.filter(enrollment=enrollment).exists()
+
     lecciones = _completar_lecciones(enrollment)
     cuestionario = _aprobar_cuestionario(enrollment)
     entrega = _entregar_trabajo(enrollment)
@@ -123,12 +130,16 @@ def completar_inscripcion(enrollment):
     _issue_certificate_if_needed(enrollment)
     enrollment.refresh_from_db()
 
+    tiene_ahora = Certificate.objects.filter(enrollment=enrollment).exists()
+
     return {
         'enrollment_id': enrollment.id,
         'course': enrollment.course.title,
         'lecciones_completadas': lecciones,
         'cuestionario_aprobado': cuestionario,
         'trabajo_entregado': entrega,
-        'certificado': Certificate.objects.filter(enrollment=enrollment).exists(),
+        'certificado': tiene_ahora,
+        # Solo estos generan correo.
+        'certificado_nuevo': tiene_ahora and not ya_tenia,
         'actividades': estado_actividades(enrollment),
     }

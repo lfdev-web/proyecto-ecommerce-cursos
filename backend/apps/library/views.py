@@ -181,13 +181,26 @@ class DemoCompleteView(APIView):
                 status=status.HTTP_400_BAD_REQUEST)
 
         resultados = [completar_inscripcion(e) for e in inscripciones]
-        certificados = sum(1 for r in resultados if r['certificado'])
+        nuevos = sum(1 for r in resultados if r['certificado_nuevo'])
+        previos = sum(1 for r in resultados if r['certificado']) - nuevos
+
+        # El correo del certificado sale UNA sola vez, al emitirlo. Decir
+        # "emitidos, salen por correo" cuando ya existían haría esperar unos
+        # correos que nunca van a llegar.
+        partes = [f'{len(resultados)} curso(s) completado(s).']
+        if nuevos:
+            partes.append(f'{nuevos} certificado(s) emitido(s) ahora — esos salen por correo.')
+        if previos:
+            partes.append(
+                f'{previos} ya estaban emitidos de antes: se descargan desde la '
+                f'biblioteca, pero no se reenvían por correo.')
+        if not nuevos and not previos:
+            partes.append('Ningún certificado: revisa que los cursos tengan sus actividades.')
 
         return Response({
-            'detail': (
-                f'{len(resultados)} curso(s) completado(s), '
-                f'{certificados} certificado(s) emitido(s). '
-                f'Los certificados salen también por correo.'),
+            'detail': ' '.join(partes),
+            'certificados_nuevos': nuevos,
+            'certificados_previos': previos,
             'cursos': resultados,
         })
 

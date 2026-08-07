@@ -25,11 +25,25 @@ class Command(BaseCommand):
             '--limpiar-alumno', action='store_true', dest='limpiar_alumno',
             help='Vacía la biblioteca de alumno@demo.com para repetir el '
                  'recorrido de compra desde cero. Conserva su historial de órdenes.')
+        parser.add_argument(
+            '--limpiar-revisor', action='store_true', dest='limpiar_revisor',
+            help='Borra los certificados y el progreso de revisor@demo.com (no sus '
+                 'cursos). Necesario para volver a ver llegar los correos: un '
+                 'certificado ya emitido no se reenvía.')
+        parser.add_argument(
+            '--ensayo', action='store_true',
+            help='Atajo de --limpiar-alumno y --limpiar-revisor juntos: deja las dos '
+                 'cuentas en el punto de partida después de un ensayo.')
 
     @transaction.atomic
     def handle(self, *args, **options):
+        ensayo = options['ensayo']
         self.stdout.write('Preparando cuentas...')
-        preparar_todo(log=self.stdout.write, limpiar_alumno=options['limpiar_alumno'])
+        preparar_todo(
+            log=self.stdout.write,
+            limpiar_alumno=options['limpiar_alumno'] or ensayo,
+            limpiar_revisor=options['limpiar_revisor'] or ensayo,
+        )
         self._resumen()
 
     # ------------------------------------------------------------------

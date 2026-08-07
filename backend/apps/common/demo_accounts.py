@@ -192,13 +192,19 @@ def preparar_alumno(log=print, limpiar=False):
 
 
 # ---------------------------------------------------------------------------
-def preparar_revisor(log=print):
+def preparar_revisor(log=print, limpiar=False):
     """
     Le da a la cuenta de revisión su membresía y sus cursos.
 
     Sin cursos en la biblioteca, el botón de recorrido rápido no tendría nada
     que completar. Se inscribe por membresía y no por compra porque una
     inscripción PURCHASED sin una orden detrás sería un registro incoherente.
+
+    `limpiar` deshace el progreso —certificados, entregas, intentos y
+    lecciones— pero CONSERVA las inscripciones. Hace falta porque el
+    certificado se emite y se envía por correo una sola vez: si ya está
+    emitido, pulsar el botón no manda ningún correo. Para enseñar en vivo cómo
+    llega, hay que volver a dejar los cursos sin terminar.
     """
     from apps.catalog.models import Course
     from apps.library.models import Enrollment, EnrollmentType
@@ -208,6 +214,25 @@ def preparar_revisor(log=print):
     revisor = CustomUser.objects.filter(email=REVISOR).first()
     if not revisor:
         return
+
+    if limpiar:
+        from apps.exams.models import AttemptAnswer, ExamAttempt
+        from apps.library.models import (
+            AssignmentSubmission, Certificate, LessonProgress,
+        )
+
+        inscripciones = Enrollment.objects.filter(user=revisor)
+        intentos = ExamAttempt.objects.filter(enrollment__in=inscripciones)
+        AttemptAnswer.objects.filter(attempt__in=intentos).delete()
+        intentos.delete()
+        n_cert = Certificate.objects.filter(enrollment__in=inscripciones).count()
+        Certificate.objects.filter(enrollment__in=inscripciones).delete()
+        AssignmentSubmission.objects.filter(enrollment__in=inscripciones).delete()
+        LessonProgress.objects.filter(enrollment__in=inscripciones).delete()
+        # Las inscripciones se quedan; solo se revierte su progreso.
+        inscripciones.update(progress_percentage=0.0, is_completed=False)
+        log(f'  progreso de {REVISOR} revertido ({n_cert} certificados borrados): '
+            f'el botón volverá a emitirlos y a mandarlos por correo')
 
     if not revisor.can_autocomplete_demo:
         revisor.can_autocomplete_demo = True
@@ -242,10 +267,10 @@ def preparar_revisor(log=print):
 
 
 # ---------------------------------------------------------------------------
-def preparar_todo(log=print, limpiar_alumno=False):
+def preparar_todo(log=print, limpiar_alumno=False, limpiar_revisor=False):
     """Crea las cuentas que falten y deja a cada una en su punto de partida."""
     creadas = crear_cuentas_demo(log)
     preparar_docente(log)
     preparar_alumno(log, limpiar=limpiar_alumno)
-    preparar_revisor(log)
+    preparar_revisor(log, limpiar=limpiar_revisor)
     return creadas
