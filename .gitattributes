@@ -1,0 +1,29 @@
+# Normalización de finales de línea.
+#
+# El proyecto se desarrolla en Windows pero se ejecuta en contenedores Linux.
+# Si un script .sh llega al servidor con finales CRLF, bash falla con
+# "/bin/bash^M: bad interpreter" y el error no dice nada útil sobre la causa.
+# Esto lo fija en el repositorio y deja de depender de core.autocrlf, que cada
+# máquina puede tener configurado distinto.
+
+# Por defecto: git decide qué es texto y normaliza a LF al guardar
+* text=auto
+
+# Estos SIEMPRE con LF: los ejecuta Linux dentro del contenedor
+*.sh            text eol=lf
+*.sql           text eol=lf
+Dockerfile      text eol=lf
+Dockerfile.*    text eol=lf
+*.yml           text eol=lf
+*.yaml          text eol=lf
+.env.example    text eol=lf
+nginx.conf      text eol=lf
+
+# Binarios: git no debe tocarlos
+*.png           binary
+*.jpg           binary
+*.jpeg          binary
+*.gif           binary
+*.ico           binary
+*.pdf           binary
+*.ttf           binary

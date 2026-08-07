@@ -47,6 +47,10 @@ Thumbs.db
 respaldos/
 *.sql.gz
 *.dump
+# dumpdata de Django: además de los datos, arrastra sessions.session con el
+# session_data de cada usuario. Nunca al repositorio.
+respaldo_*.json
+*_dump.json
 
 # Archivos subidos por usuarios (avatares, cédulas de los docentes)
 backend/media/
