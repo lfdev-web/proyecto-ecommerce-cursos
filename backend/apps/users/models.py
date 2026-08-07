@@ -91,6 +91,19 @@ class CustomUser(AbstractUser):
         help_text="Saldo simulado disponible para compras (demo, no es dinero real)."
     )
 
+    # Dónde recibir los avisos (factura, certificado, comprobante de recarga)
+    # cuando no deben ir al correo con el que se inicia sesión.
+    #
+    # Hace falta porque `email` es el usuario del login: ponerle un correo real
+    # a la cuenta de demostración borraría la credencial conocida. Y como
+    # `email` es único, dos cuentas de demostración no podrían apuntar al mismo
+    # buzón. Este campo no es único y no autentica: solo dice a dónde mandar.
+    notification_email = models.EmailField(
+        blank=True, default='',
+        verbose_name='Correo para avisos',
+        help_text='Vacío = los correos van al email de la cuenta.'
+    )
+
     # Atajo de demostración: permite dar por completado un curso entero de un
     # clic (lecciones, cuestionario y entrega) para poder mostrar el
     # certificado sin recorrer las 7 lecciones una por una.
@@ -117,6 +130,11 @@ class CustomUser(AbstractUser):
 
     def __str__(self):
         return self.email
+
+    @property
+    def contact_email(self):
+        """A dónde se le mandan los avisos. Todo envío debe usar esto."""
+        return self.notification_email or self.email
 
 
 class WalletTransaction(models.Model):

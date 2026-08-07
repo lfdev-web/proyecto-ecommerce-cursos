@@ -302,6 +302,26 @@ Gmail **ignora un remitente distinto a la cuenta autenticada**, así que
 `DEFAULT_FROM_EMAIL` debe usar el mismo correo de `EMAIL_HOST_USER`. El límite
 es de unos 500 correos al día.
 
+### Que los correos de la demostración lleguen a tu bandeja
+
+Las cuentas de demostración usan direcciones `@demo.com`, que no existen. Para
+enseñar en vivo cómo llega la factura o el certificado, redirige sus avisos a un
+buzón real:
+
+```bash
+docker compose -f docker-compose.prod.yml exec backend python manage.py correo_demo tucorreo@ejemplo.com
+```
+
+Las credenciales **no cambian**: `alumno@demo.com` sigue siendo el usuario del
+login. Lo que se cambia es `notification_email`, un campo aparte que solo dice a
+dónde mandar el aviso — por eso las cuatro cuentas pueden apuntar al mismo buzón
+aunque `email` sea único. Con `--quitar` se deshace, y con `--cuenta` se limita a
+una sola cuenta.
+
+> Esto **no sustituye** a la configuración de SMTP de arriba. Sin `EMAIL_HOST`,
+> el correo se sigue imprimiendo en el log del worker y no llega a ninguna
+> bandeja, apunte a donde apunte.
+
 ### Qué se envía
 
 | Cuándo | Contenido |

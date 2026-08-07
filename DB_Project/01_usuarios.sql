@@ -50,6 +50,12 @@ CREATE TABLE public.usuarios (
     -- por una. Está apagado por defecto y solo se activa en la cuenta de
     -- revisión; en una plataforma real esta columna no existiría.
     puede_completar_demo boolean NOT NULL,
+    -- A dónde mandar los avisos (factura, certificado, comprobante) cuando no
+    -- deben ir al correo del login. Existe porque `email` es el usuario con el
+    -- que se inicia sesión y además es único: sin esta columna, apuntar dos
+    -- cuentas de demostración al mismo buzón real obligaría a romper sus
+    -- credenciales. Vacío = se usa `email`.
+    correo_avisos character varying(254) NOT NULL,
 
     CONSTRAINT uq_usuarios_email UNIQUE (email),
     CONSTRAINT uq_usuarios_codigo_referido UNIQUE (codigo_referido)

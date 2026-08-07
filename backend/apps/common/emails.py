@@ -86,7 +86,7 @@ def enviar_factura(order_id):
     )
     _enviar(
         f'Tu compra en {settings.SITE_NAME} — Factura {orden.transaction_reference or orden.id}',
-        cuerpo, orden.user.email,
+        cuerpo, orden.user.contact_email,
         adjunto=(f'factura-{orden.id}.pdf', pdf, 'application/pdf'),
     )
 
@@ -133,7 +133,7 @@ def enviar_certificado(certificate_id):
     )
     _enviar(
         f'Tu certificado de «{cert.course_title}»',
-        cuerpo, usuario.email,
+        cuerpo, usuario.contact_email,
         adjunto=(f'certificado-{cert.verification_code}.pdf', pdf, 'application/pdf'),
     )
 
@@ -168,5 +168,5 @@ def enviar_comprobante_recarga(recharge_id):
     )
     _enviar(
         f'Recarga de ${recarga.amount} confirmada — {recarga.reference}',
-        cuerpo, usuario.email,
+        cuerpo, usuario.contact_email,
     )

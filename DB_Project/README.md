@@ -36,7 +36,7 @@ se comparó contra la base real, columna por columna:
 |---|---|
 | Los 8 scripts ejecutan en orden | Sin errores |
 | Número de tablas | 52 = 52 |
-| Número de columnas | 326 = 326 |
+| Número de columnas | 327 = 327 |
 | Restricciones UNIQUE | 28 = 28 |
 | Tipo de dato y nulabilidad en cada posición | **52 de 52 tablas coinciden exactamente** |
 | Claves foráneas | 69 vs 71 (ver nota abajo) |
