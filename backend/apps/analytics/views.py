@@ -4,32 +4,10 @@ from rest_framework.views import APIView
 from django.db.models import Count
 from django.utils import timezone
 
-from django.conf import settings
+from apps.common.red import ip_cliente as _ip_del_cliente
 
 from .models import NavigationLog, ConversionFunnel
 from .serializers import LogEventSerializer
-
-
-def _ip_del_cliente(request):
-    """
-    IP real del visitante.
-
-    `X-Forwarded-For` la escribe el cliente y se puede falsificar, así que solo
-    se lee cuando confiamos en el proxy de adelante (nginx en producción, que
-    reescribe la cabecera). El número de proxies propios se declara en
-    TRUSTED_PROXY_COUNT: se toma la IP en esa posición contando desde el final,
-    porque las de la izquierda las pudo inventar el cliente.
-
-    Sin proxy declarado (desarrollo) se usa REMOTE_ADDR, que no es falsificable.
-    """
-    saltos = getattr(settings, 'TRUSTED_PROXY_COUNT', 0)
-    if saltos > 0:
-        reenviadas = request.META.get('HTTP_X_FORWARDED_FOR', '')
-        if reenviadas:
-            cadena = [p.strip() for p in reenviadas.split(',') if p.strip()]
-            if len(cadena) >= saltos:
-                return cadena[-saltos]
-    return request.META.get('REMOTE_ADDR')
 
 
 class LogEventView(APIView):
