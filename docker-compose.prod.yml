@@ -56,10 +56,16 @@ services:
     # plegado de YAML (>) las líneas más indentadas conservan el salto de línea,
     # así que partirlos hacía que gunicorn arrancara sin --bind y escuchara en
     # 127.0.0.1 — inalcanzable para nginx desde otro contenedor (502).
+    # El chmod es necesario porque estos volúmenes los ESCRIBE el backend (root)
+    # y los SIRVE nginx (usuario nginx). Docker crea el punto de montaje con
+    # permisos restrictivos y nginx no puede recorrer el directorio: devuelve
+    # 403 aunque los archivos sean legibles. "a+rX" da lectura a todos y
+    # recorrido solo en directorios, sin volver ejecutables los archivos.
     command: >
       sh -c "python manage.py wait_for_db &&
       python manage.py migrate --noinput &&
       python manage.py collectstatic --noinput &&
+      mkdir -p /app/media /app/static && chmod -R a+rX /app/media /app/static &&
       gunicorn core.wsgi:application --bind 0.0.0.0:8000 --workers 3 --timeout 120 --access-logfile - --error-logfile -"
     volumes:
       - static_files:/app/static

@@ -61,6 +61,10 @@ def generar_portada(titulo, categoria, nivel, destino):
     if destino.exists() and destino.stat().st_size > 0:
         return True
     destino.parent.mkdir(parents=True, exist_ok=True)
+    # En producción nginx sirve estos archivos como otro usuario: sin permiso
+    # de recorrido sobre el directorio devuelve 403 aunque el archivo sea
+    # legible. mkdir aplica el umask del proceso, que puede dejarlo en 700.
+    destino.parent.chmod(0o755)
 
     desde, hasta = COLORES.get(categoria, POR_DEFECTO)
     img = Image.new('RGB', (ANCHO, ALTO), desde)

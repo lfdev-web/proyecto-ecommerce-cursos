@@ -133,6 +133,9 @@ def _descargar(url, destino):
         return True
     try:
         destino.parent.mkdir(parents=True, exist_ok=True)
+        # nginx sirve /media como otro usuario: sin recorrido en el directorio
+        # da 403 aunque el archivo sea legible (ver settings.MEDIA_ROOT).
+        destino.parent.chmod(0o755)
         req = urllib.request.Request(url, headers={'User-Agent': 'seed-demo/1.0'})
         with urllib.request.urlopen(req, timeout=25) as r:
             datos = r.read()

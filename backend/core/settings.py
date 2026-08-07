@@ -146,6 +146,18 @@ STATIC_ROOT = BASE_DIR / 'static'
 MEDIA_URL = '/media/'
 MEDIA_ROOT = BASE_DIR / 'media'
 
+# Permisos de lo que se sube a MEDIA_ROOT.
+#
+# En producción los archivos los ESCRIBE Django (como root) pero los SIRVE
+# nginx (como usuario nginx). Sin esto, Django crea los directorios con el
+# umask del proceso y pueden quedar en 700: nginx no puede recorrerlos y
+# devuelve 403 aunque los archivos en sí sean legibles. El síntoma es
+# desconcertante porque el archivo existe y tiene permisos correctos.
+#
+# El 0o755 da recorrido a todos sin permitir escritura; el 0o644, lectura.
+FILE_UPLOAD_DIRECTORY_PERMISSIONS = 0o755
+FILE_UPLOAD_PERMISSIONS = 0o644
+
 # Default primary key field type
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
