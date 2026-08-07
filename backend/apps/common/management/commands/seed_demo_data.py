@@ -343,9 +343,9 @@ class Command(BaseCommand):
         limpias para hacer el recorrido desde cero sin ensuciar las
         estadísticas del seed.
         """
-        from apps.common.demo_accounts import CUENTAS, crear_cuentas_demo
+        from apps.common.demo_accounts import CUENTAS, preparar_todo
 
-        creadas = crear_cuentas_demo(log=lambda _: None)
+        creadas = preparar_todo(log=lambda _: None)
         if creadas:
             self.stdout.write(f'  Cuentas de demostración creadas: {creadas}')
             for email, clave, _, _, _ in CUENTAS:

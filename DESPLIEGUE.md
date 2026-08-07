@@ -130,19 +130,41 @@ original.
 
 ### 8. Cuentas de demostración
 
-Si la base ya estaba sembrada y las cuentas `@demo.com` no existen:
-
 ```bash
-docker compose -f docker-compose.prod.yml cp scripts/crear_usuarios_demo.py backend:/tmp/cd.py
-docker compose -f docker-compose.prod.yml exec backend python manage.py shell -c "exec(open('/tmp/cd.py').read())"
+docker compose -f docker-compose.prod.yml exec backend python manage.py cuentas_demo
 ```
 
-| Cuenta | Contraseña | Para qué sirve |
-|---|---|---|
-| `admin@demo.com` | `Admin1234!` | Django Admin y panel de analítica |
-| `docente@demo.com` | `Demo1234!` | Panel del docente |
-| `alumno@demo.com` | `Demo1234!` | Recorrido completo: compra → lecciones → actividades → certificado |
-| `revisor@demo.com` | `Demo1234!` | Igual que el alumno, **más** el botón que completa todos sus cursos de un clic |
+Crea las que falten y deja a cada una en su punto de partida. Al terminar
+imprime un resumen con las credenciales y el estado de cada cuenta.
+
+**Es idempotente y nunca cambia la contraseña de una cuenta que ya existe.**
+Si ya cambiaste la del administrador —que es lo correcto, porque la de este
+repositorio es pública— se respeta, y el resumen lo dice en vez de imprimir
+una contraseña que no funciona.
+
+| Cuenta | Contraseña | Con qué arranca | Para qué sirve |
+|---|---|---|---|
+| `admin@demo.com` | `Admin1234!` | — | Django Admin y panel de analítica |
+| `docente@demo.com` | `Demo1234!` | Plan Docente VIP y **3 cursos con ventas, alumnos y reseñas** | El negocio visto desde quien enseña: ingresos, comisión, alumnos por curso, pedir cupo y publicar |
+| `alumno@demo.com` | `Demo1234!` | $500 de saldo y la **biblioteca vacía** | El recorrido completo: catálogo → carrito → pago → lecciones → actividades → certificado |
+| `revisor@demo.com` | `Demo1234!` | Membresía y **6 cursos** | Lo mismo, pero con el botón que completa todos sus cursos de un clic |
+
+Los tres cursos del docente (`Python desde cero`, `React en la práctica` y
+`Docker desde cero`) están también en la biblioteca del revisor a propósito:
+así el docente lo ve en su lista de alumnos y las dos pantallas se sostienen
+entre sí.
+
+#### Repetir el recorrido
+
+Después de un ensayo, para que el alumno vuelva a empezar de cero:
+
+```bash
+docker compose -f docker-compose.prod.yml exec backend python manage.py cuentas_demo --limpiar-alumno
+```
+
+Vacía su biblioteca (inscripciones, progreso, entregas y certificados) y le
+repone el saldo. **Sus órdenes NO se borran**: son el historial de compras y el
+docente cobró comisión por ellas — borrarlas descuadraría su panel.
 
 > `revisor@demo.com` existe porque completar un curso a mano son siete
 > lecciones, un cuestionario y una entrega, y quien revisa la plataforma

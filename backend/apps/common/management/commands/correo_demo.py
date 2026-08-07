@@ -40,7 +40,7 @@ class Command(BaseCommand):
 
         if not usuarios.exists():
             raise CommandError(
-                'No encontré esas cuentas. ¿Corriste crear_usuarios_demo?')
+                'No encontré esas cuentas. ¿Corriste cuentas_demo?')
 
         if options['quitar']:
             n = usuarios.update(notification_email='')

@@ -103,8 +103,8 @@ class Command(BaseCommand):
         # --- Usuarios de demostración ---
         # Compartido con seed_demo_data: las cuentas deben ser las mismas se
         # llegue por donde se llegue.
-        from apps.common.demo_accounts import CUENTAS, crear_cuentas_demo
-        crear_cuentas_demo(log=lambda _: None)
+        from apps.common.demo_accounts import CUENTAS, preparar_todo
+        preparar_todo(log=lambda _: None)
 
         self.stdout.write(self.style.SUCCESS('\nBase reiniciada. Usuarios disponibles:'))
         for email, clave, _, _, rol in CUENTAS:
