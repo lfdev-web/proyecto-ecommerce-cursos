@@ -1,5 +1,6 @@
 from rest_framework import serializers
 from django.contrib.auth import get_user_model
+from django.contrib.auth.password_validation import validate_password
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 
 from .models import (
@@ -204,3 +205,27 @@ class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
         data['role'] = self.user.role_id
         data['email'] = self.user.email
         return data
+
+
+class PasswordResetRequestSerializer(serializers.Serializer):
+    """Solo pide el correo. La respuesta es la misma exista o no (ver la vista)."""
+    email = serializers.EmailField()
+
+
+class PasswordResetConfirmSerializer(serializers.Serializer):
+    """
+    Datos del enlace del correo más la contraseña nueva.
+
+    uid y token viajan en la URL que se le manda al usuario; aquí llegan en el
+    cuerpo porque el frontend es una SPA y los lee de su propia ruta.
+    """
+    uid = serializers.CharField()
+    token = serializers.CharField()
+    password = serializers.CharField(write_only=True, min_length=8)
+
+    def validate_password(self, value):
+        # Las mismas reglas que en el registro: sin esto se podría usar el
+        # enlace de recuperación para poner una contraseña que el formulario
+        # de registro habría rechazado.
+        validate_password(value)
+        return value

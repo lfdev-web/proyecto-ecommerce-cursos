@@ -47,6 +47,8 @@ export default function LoginPage() {
         </form>
         <p className="text-center mt-lg">
           ¿No tienes cuenta? <Link to="/registro">Regístrate</Link>
+          <br />
+          <Link to="/recuperar">¿Olvidaste tu contraseña?</Link>
         </p>
       </div>
     </div>

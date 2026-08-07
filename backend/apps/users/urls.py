@@ -5,6 +5,7 @@ from .views import (
     RechargeAuthorizeView, RechargeCancelView, RechargeDetailView,
     RechargeHistoryView, RechargeStartView,
     TeacherApplicationView, WalletTransactionsView,
+    PasswordResetRequestView, PasswordResetConfirmView,
 )
 
 urlpatterns = [
@@ -13,6 +14,10 @@ urlpatterns = [
     path('token/refresh/', TokenRefreshView.as_view(), name='auth_refresh'),
     path('logout/', LogoutView.as_view(), name='auth_logout'),
     path('profile/', ProfileView.as_view(), name='auth_profile'),
+
+    # Recuperación de contraseña: pedir el enlace y usarlo
+    path('password/reset/', PasswordResetRequestView.as_view(), name='password_reset'),
+    path('password/reset/confirm/', PasswordResetConfirmView.as_view(), name='password_reset_confirm'),
     path('wallet/transactions/', WalletTransactionsView.as_view(), name='wallet_transactions'),
 
     # Recarga de saldo por la pasarela simulada (dos pasos: iniciar y autorizar)

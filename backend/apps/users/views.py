@@ -24,6 +24,8 @@ from .serializers import (
     TeacherApplicationSerializer,
     WalletRechargeSerializer,
     WalletTransactionSerializer,
+    PasswordResetRequestSerializer,
+    PasswordResetConfirmSerializer,
 )
 
 User = get_user_model()
@@ -279,3 +281,92 @@ class TeacherApplicationView(APIView):
         serializer.is_valid(raise_exception=True)
         serializer.save(user=user, status_id=TeacherApplicationStatus.PENDING)
         return Response(serializer.data, status=status.HTTP_201_CREATED)
+
+
+class PasswordResetRequestView(APIView):
+    """
+    POST /api/auth/password/reset/   {"email": "..."}
+
+    Manda el enlace de recuperación. **Responde lo mismo exista o no la
+    cuenta**: si dijera "ese correo no está registrado", cualquiera podría
+    averiguar quién tiene cuenta aquí probando direcciones, que es el primer
+    paso de un ataque dirigido.
+
+    El envío va por Celery: si el SMTP está lento, la respuesta no debe
+    tardar — y el tiempo de respuesta tampoco debe delatar si el correo existe.
+    """
+    permission_classes = [permissions.AllowAny]
+    throttle_scope = 'password_reset'
+
+    def post(self, request):
+        serializer = PasswordResetRequestSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        email = serializer.validated_data['email']
+
+        usuario = User.objects.filter(email__iexact=email, is_active=True).first()
+        if usuario:
+            from django.contrib.auth.tokens import default_token_generator
+            from django.utils.encoding import force_bytes
+            from django.utils.http import urlsafe_base64_encode
+            from apps.common.emails import enviar_reset_password
+
+            uid = urlsafe_base64_encode(force_bytes(usuario.pk))
+            token = default_token_generator.make_token(usuario)
+            enviar_reset_password.delay(usuario.id, uid, token)
+
+        return Response({
+            'detail': 'Si ese correo tiene una cuenta, te enviamos un enlace '
+                      'para cambiar la contraseña. Revisa también el spam.'
+        })
+
+
+class PasswordResetConfirmView(APIView):
+    """
+    POST /api/auth/password/reset/confirm/
+    {"uid": "...", "token": "...", "password": "..."}
+
+    Comprueba el enlace y guarda la contraseña nueva.
+    """
+    permission_classes = [permissions.AllowAny]
+    throttle_scope = 'password_reset_confirm'
+
+    def post(self, request):
+        from django.contrib.auth.tokens import default_token_generator
+        from django.utils.encoding import force_str
+        from django.utils.http import urlsafe_base64_decode
+
+        serializer = PasswordResetConfirmSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        datos = serializer.validated_data
+
+        invalido = Response(
+            {'detail': 'El enlace no es válido o ya caducó. Pide uno nuevo.'},
+            status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            usuario = User.objects.get(pk=force_str(urlsafe_base64_decode(datos['uid'])))
+        except (TypeError, ValueError, OverflowError, User.DoesNotExist):
+            return invalido
+
+        if not default_token_generator.check_token(usuario, datos['token']):
+            return invalido
+
+        usuario.set_password(datos['password'])
+        usuario.save(update_fields=['password'])
+
+        # Cerrar las sesiones abiertas. Si alguien entró con la contraseña
+        # vieja, cambiarla no lo echaba: su token seguía siendo válido hasta
+        # caducar. Justo el caso en que se recupera la cuenta porque alguien
+        # más entró.
+        try:
+            from rest_framework_simplejwt.token_blacklist.models import (
+                BlacklistedToken, OutstandingToken,
+            )
+            for pendiente in OutstandingToken.objects.filter(user=usuario):
+                BlacklistedToken.objects.get_or_create(token=pendiente)
+        except Exception:
+            # Sin la app de blacklist instalada esto no aplica; el cambio de
+            # contraseña no debe fallar por ello.
+            pass
+
+        return Response({'detail': 'Contraseña actualizada. Ya puedes iniciar sesión.'})

@@ -399,6 +399,11 @@ SITE_NAME=CursosTech
 SITE_URL=https://lfldev.online
 ```
 
+> **`SITE_URL` tiene que ser el dominio real.** El enlace de recuperación de
+> contraseña se arma con esa variable: si apunta a `localhost`, el correo
+> sale igual pero el enlace no lleva a ninguna parte y nadie puede recuperar
+> su cuenta.
+
 4. Reinicia el backend y el worker:
 
 ```bash
@@ -473,6 +478,7 @@ iguales:
 
 | Cuándo | Contenido |
 |---|---|
+| Al pedir recuperar la contraseña | Enlace para elegir una nueva (caduca en 1 hora) |
 | Al completar una compra | Factura en PDF con el detalle y el descuento aplicado |
 | Al emitirse un certificado | Certificado en PDF, solo la primera vez |
 | Al aprobarse una recarga | Comprobante con la referencia y el saldo resultante |

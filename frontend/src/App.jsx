@@ -5,6 +5,8 @@ import ProtectedRoute from './components/ProtectedRoute';
 import CatalogPage from './pages/CatalogPage';
 import LoginPage from './pages/LoginPage';
 import RegisterPage from './pages/RegisterPage';
+import ForgotPasswordPage from './pages/ForgotPasswordPage';
+import ResetPasswordPage from './pages/ResetPasswordPage';
 import './App.css';
 
 // El catálogo y el login van en el bundle principal: son la primera pantalla
@@ -50,6 +52,9 @@ function App() {
           <Route path="/" element={<CatalogPage />} />
           <Route path="/login" element={<LoginPage />} />
           <Route path="/registro" element={<RegisterPage />} />
+          <Route path="/recuperar" element={<ForgotPasswordPage />} />
+          {/* uid y token los pone el enlace del correo */}
+          <Route path="/restablecer/:uid/:token" element={<ResetPasswordPage />} />
           <Route path="/cursos/:slug" element={<CourseDetailPage />} />
           <Route path="/carrito" element={<ProtectedRoute><CartPage /></ProtectedRoute>} />
           <Route path="/checkout" element={<ProtectedRoute><CheckoutPage /></ProtectedRoute>} />

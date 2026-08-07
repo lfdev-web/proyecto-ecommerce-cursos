@@ -204,6 +204,15 @@ REST_FRAMEWORK = {
         # una persona probando nunca lo alcanza y, si lo alcanza, se libera en
         # 60 segundos en vez de dejarla bloqueada una hora.
         'recarga': '15/min',
+        # Pedir el enlace de recuperación: cada intento manda un correo a
+        # una dirección que elige quien llama, así que sin tope se podría
+        # usar para inundar el buzón de otra persona.
+        'password_reset': '5/hour',
+        # Usar el enlace es otra cosa: no manda ningún correo y el usuario
+        # legítimo puede necesitar varios intentos si su contraseña nueva
+        # no pasa los validadores. Con el mismo tope que arriba, teclear
+        # dos contraseñas débiles seguidas lo dejaba fuera una hora.
+        'password_reset_confirm': '20/hour',
     },
 }
 
@@ -331,6 +340,11 @@ DEFAULT_FROM_EMAIL = os.environ.get(
 # Nombre y URL que aparecen en los correos
 SITE_NAME = os.environ.get('SITE_NAME', 'CursosTech')
 SITE_URL = os.environ.get('SITE_URL', 'http://localhost:3000')
+
+# Cuánto dura el enlace de recuperación de contraseña. El de Django son 3
+# días; una hora es de sobra para quien acaba de pedirlo y reduce la
+# ventana en que un enlace olvidado en el buzón sigue sirviendo.
+PASSWORD_RESET_TIMEOUT = 60 * 60
 
 # Tope de tamaño de las peticiones (subida de avatar y cédula del docente).
 # Django rechaza con 400 cualquier cuerpo mayor, antes de tocar el disco.

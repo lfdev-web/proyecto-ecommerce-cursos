@@ -170,3 +170,44 @@ def enviar_comprobante_recarga(recharge_id):
         f'Recarga de ${recarga.amount} confirmada — {recarga.reference}',
         cuerpo, usuario.contact_email,
     )
+
+
+# ---------------------------------------------------------------------------
+# Recuperación de contraseña
+# ---------------------------------------------------------------------------
+
+@shared_task(name='apps.common.emails.enviar_reset_password')
+def enviar_reset_password(user_id, uid, token):
+    """
+    Manda el enlace para elegir una contraseña nueva.
+
+    El enlace apunta al frontend (la SPA lee uid y token de su propia ruta y
+    los reenvía a la API), no al admin de Django: el usuario nunca debe acabar
+    en una pantalla de administración.
+
+    El token lo genera Django y caduca solo. Además deja de servir en cuanto la
+    contraseña cambia, porque el hash actual forma parte del token — así un
+    enlace usado no se puede reutilizar aunque alguien lo tenga.
+    """
+    from apps.users.models import CustomUser
+
+    usuario = CustomUser.objects.filter(id=user_id).first()
+    if not usuario:
+        logger.warning('enviar_reset_password: el usuario %s no existe', user_id)
+        return
+
+    enlace = f'{settings.SITE_URL}/restablecer/{uid}/{token}'
+    nombre = f'{usuario.first_name} {usuario.last_name}'.strip() or usuario.email
+    horas = settings.PASSWORD_RESET_TIMEOUT // 3600
+
+    cuerpo = (
+        f'Hola {nombre}:\n\n'
+        f'Recibimos una solicitud para cambiar la contraseña de tu cuenta en '
+        f'{settings.SITE_NAME}. Abre este enlace para elegir una nueva:\n\n'
+        f'{enlace}\n\n'
+        f'El enlace caduca en {horas} hora(s) y solo se puede usar una vez.\n\n'
+        f'Si no fuiste tú, ignora este correo: tu contraseña no cambia hasta '
+        f'que alguien abra ese enlace y escriba una nueva.\n\n'
+        f'— El equipo de {settings.SITE_NAME}'
+    )
+    _enviar(f'Recupera tu contraseña de {settings.SITE_NAME}', cuerpo, usuario.contact_email)

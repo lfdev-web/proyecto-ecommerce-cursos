@@ -13,6 +13,12 @@ from .emails import (  # noqa: F401  (importadas por su efecto de registro)
     enviar_certificado,
     enviar_comprobante_recarga,
     enviar_factura,
+    enviar_reset_password,
 )
 
-__all__ = ['enviar_factura', 'enviar_certificado', 'enviar_comprobante_recarga']
+__all__ = [
+    'enviar_factura',
+    'enviar_certificado',
+    'enviar_comprobante_recarga',
+    'enviar_reset_password',
+]
