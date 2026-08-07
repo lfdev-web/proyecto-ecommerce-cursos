@@ -446,6 +446,29 @@ una sola cuenta.
 > el correo se sigue imprimiendo en el log del worker y no llega a ninguna
 > bandeja, apunte a donde apunte.
 
+### Comprobar que el correo funciona
+
+```bash
+# Diagnóstico: dice si está configurado y si las credenciales sirven
+docker compose -f docker-compose.prod.yml exec backend python manage.py probar_correo
+
+# Y además envía un mensaje real
+docker compose -f docker-compose.prod.yml exec backend python manage.py probar_correo tucorreo@ejemplo.com
+```
+
+Separa las tres causas de «no me llegó el correo», que desde fuera se ven
+iguales:
+
+| Lo que dice | Qué pasa |
+|---|---|
+| `EMAIL_HOST no está definido` | Faltan las variables en el `.env`. Los correos se imprimen en el log y no salen |
+| `FALLÓ: SMTPAuthenticationError` | La contraseña no sirve. Con Gmail tiene que ser la de aplicación, 16 caracteres **sin espacios** |
+| `Entregado al servidor SMTP` | Salió. Si aun así no aparece, está en spam |
+
+> Buscar `Correo enviado` en el log del worker **solo sirve después** de haber
+> hecho algo que genere un correo (una compra, un certificado, una recarga).
+> Si no has disparado nada, el log está vacío y eso no significa que esté mal.
+
 ### Qué se envía
 
 | Cuándo | Contenido |
