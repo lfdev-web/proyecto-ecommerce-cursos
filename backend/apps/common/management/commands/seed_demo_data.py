@@ -230,6 +230,7 @@ class Command(BaseCommand):
             self._seed_activity(courses, months, now, start)
             self._seed_recargas(now)
             self._seed_medallas()
+            self._crear_usuarios_demo()
 
         self.stdout.write(self.style.SUCCESS('\nSeed completado:'))
         for label, qs in [
@@ -329,6 +330,54 @@ class Command(BaseCommand):
         self.stdout.write(
             f'  Recargas: {len(recargas)} ({aprobadas} aprobadas, '
             f'{len(recargas) - aprobadas} rechazadas)')
+
+    # ------------------------------------------------------------------
+    def _crear_usuarios_demo(self):
+        """
+        Las tres cuentas conocidas para recorrer la aplicación: un alumno, un
+        docente y un administrador.
+
+        Se crean AQUÍ y no solo en reset_demo_data porque quien despliega corre
+        `seed_demo_data` y esperaba encontrarlas: buscarlas y que no existan es
+        un tropiezo innecesario. Se crean al final y sin historial, así quedan
+        limpias para hacer el recorrido desde cero sin ensuciar las
+        estadísticas del seed.
+        """
+        from apps.users.models import INITIAL_WALLET_BALANCE, WalletTransactionType
+
+        CUENTAS = [
+            ('admin@demo.com', 'Admin1234!', 'Admin', 'Demo', 'ADMIN'),
+            ('docente@demo.com', 'Demo1234!', 'Docente', 'Demo', 'DOCENTE'),
+            ('alumno@demo.com', 'Demo1234!', 'Alumno', 'Demo', 'ALUMNO'),
+        ]
+
+        creadas = 0
+        for email, clave, nombre, apellido, rol in CUENTAS:
+            if CustomUser.objects.filter(email=email).exists():
+                continue
+            usuario = CustomUser(
+                email=email, password=make_password(clave),
+                first_name=nombre, last_name=apellido, role_id=rol,
+                date_joined=timezone.now(), is_email_verified=True,
+                balance=INITIAL_WALLET_BALANCE,
+            )
+            if rol == 'ADMIN':
+                usuario.is_staff = True
+                usuario.is_superuser = True
+            usuario.save()
+            WalletTransaction.objects.create(
+                user=usuario, transaction_type_id=WalletTransactionType.WELCOME,
+                amount=INITIAL_WALLET_BALANCE, balance_after=INITIAL_WALLET_BALANCE,
+                description='Saldo simulado de bienvenida',
+                created_at=timezone.now(),
+            )
+            creadas += 1
+
+        if creadas:
+            self.stdout.write(f'  Cuentas de demostración creadas: {creadas}')
+            self.stdout.write('    admin@demo.com / Admin1234!')
+            self.stdout.write('    docente@demo.com / Demo1234!')
+            self.stdout.write('    alumno@demo.com / Demo1234!')
 
     # ------------------------------------------------------------------
     def _seed_medallas(self):
