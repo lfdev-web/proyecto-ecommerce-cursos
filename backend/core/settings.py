@@ -78,6 +78,9 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    # El throttling de DRF no llega al admin: /admin/login/ es una vista normal
+    # de Django y aceptaba intentos sin límite.
+    'apps.common.middleware.AdminLoginRateLimitMiddleware',
 ]
 
 ROOT_URLCONF = 'core.urls'
@@ -162,7 +165,20 @@ FILE_UPLOAD_PERMISSIONS = 0o644
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 # REST Framework settings
+# Cuántos proxies PROPIOS hay delante de Django. En producción son dos:
+# Caddy (termina el TLS) y nginx (sirve el SPA y hace de proxy). En desarrollo
+# es 0 y se usa REMOTE_ADDR.
+#
+# Importa para el límite de intentos: DRF identifica al visitante por su IP y,
+# sin este número, toma la cabecera X-Forwarded-For ENTERA como identidad. Esa
+# cabecera la puede escribir el propio cliente, así que cambiándola en cada
+# petición tendría un contador nuevo cada vez y el límite de login no serviría
+# de nada. Con el número correcto se lee la posición que escribió NUESTRO proxy
+# y se ignora lo que el cliente haya puesto delante.
+TRUSTED_PROXY_COUNT = int(os.environ.get('TRUSTED_PROXY_COUNT', 0))
+
 REST_FRAMEWORK = {
+    'NUM_PROXIES': TRUSTED_PROXY_COUNT,
     'DEFAULT_AUTHENTICATION_CLASSES': (
         'rest_framework_simplejwt.authentication.JWTAuthentication',
     ),
@@ -315,11 +331,6 @@ DEFAULT_FROM_EMAIL = os.environ.get(
 # Nombre y URL que aparecen en los correos
 SITE_NAME = os.environ.get('SITE_NAME', 'CursosTech')
 SITE_URL = os.environ.get('SITE_URL', 'http://localhost:3000')
-
-# Cuántos proxies propios hay delante de Django (nginx = 1). Con 0 se ignora
-# X-Forwarded-For y se usa REMOTE_ADDR, que el cliente no puede falsificar.
-# Solo súbelo si de verdad hay un proxy tuyo reescribiendo la cabecera.
-TRUSTED_PROXY_COUNT = int(os.environ.get('TRUSTED_PROXY_COUNT', 0))
 
 # Tope de tamaño de las peticiones (subida de avatar y cédula del docente).
 # Django rechaza con 400 cualquier cuerpo mayor, antes de tocar el disco.

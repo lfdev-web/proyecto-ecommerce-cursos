@@ -61,7 +61,7 @@ docker run --rm python:3.12-slim python -c \
 | `REDIS_URL` | `redis://:LA_PASSWORD@redis:6379/0` |
 | `CELERY_BROKER_URL` | `redis://:LA_PASSWORD@redis:6379/0` |
 | `CELERY_RESULT_BACKEND` | `redis://:LA_PASSWORD@redis:6379/1` |
-| `TRUSTED_PROXY_COUNT` | `1` (nginx del compose de producción) |
+| `TRUSTED_PROXY_COUNT` | `2` (Caddy + nginx) |
 
 > `CORS_ALLOWED_ORIGINS` alimenta también `CSRF_TRUSTED_ORIGINS`, que el Django
 > Admin necesita para aceptar sus formularios. Si lo dejas vacío no vas a poder
@@ -230,6 +230,72 @@ curl -I https://tudominio.com/mi-biblioteca
 - [ ] `manage.py check --deploy` sin advertencias críticas
 - [ ] Superusuario creado y su contraseña guardada en un gestor
 - [ ] Copia de seguridad de la base configurada (ver abajo)
+
+---
+
+## Endurecer el servidor
+
+Lo que trae la aplicación ya (no hay que hacer nada):
+
+| Defensa | Dónde |
+|---|---|
+| Límite de intentos en la API (8/min por IP) | throttling de DRF, contadores en Redis |
+| Límite de intentos en `/admin/login/` (6, bloqueo 15 min) | `apps.common.middleware` |
+| HTTPS obligatorio, HSTS, cookies seguras | Django con `DEBUG=False` |
+| CSP, `nosniff`, `X-Frame-Options`, `Permissions-Policy` | `frontend/nginx.conf` |
+| Formatos de subida restringidos | `apps.library.models.EXTENSIONES_ENTREGA` |
+| Postgres y Redis sin puertos publicados | `docker-compose.prod.yml` |
+
+Lo que hay que hacer **en el sistema operativo**, una sola vez:
+
+```bash
+# 1. Cortafuegos: solo SSH, HTTP y HTTPS
+sudo apt update && sudo apt install -y ufw
+sudo ufw default deny incoming
+sudo ufw default allow outgoing
+sudo ufw allow OpenSSH
+sudo ufw allow 80/tcp
+sudo ufw allow 443/tcp
+sudo ufw --force enable
+sudo ufw status verbose
+```
+
+> **Antes de activarlo, comprueba que `sudo ufw allow OpenSSH` está puesto.**
+> Si activas el cortafuegos sin permitir el puerto 22 pierdes el acceso al
+> servidor y hay que entrar por la consola del panel del proveedor.
+
+```bash
+# 2. Bloquear a quien insista con el SSH
+sudo apt install -y fail2ban
+sudo systemctl enable --now fail2ban
+sudo fail2ban-client status sshd
+```
+
+```bash
+# 3. Actualizaciones de seguridad automáticas
+sudo apt install -y unattended-upgrades
+sudo dpkg-reconfigure -plow unattended-upgrades
+```
+
+```bash
+# 4. Cambiar la contraseña del administrador
+#    Las de demostración están en el repositorio: si es público, cualquiera
+#    puede entrar al admin como superusuario.
+docker compose -f docker-compose.prod.yml exec backend python manage.py changepassword admin@demo.com
+```
+
+Comprobar que las defensas responden:
+
+```bash
+# 9 intentos de login seguidos: los últimos deben dar 429
+for i in $(seq 1 9); do
+  curl -s -o /dev/null -w "%{http_code} " -X POST https://tudominio.com/api/auth/login/ \
+    -H 'Content-Type: application/json' -d '{"email":"a@b.com","password":"x"}'
+done; echo
+
+# Cabeceras de seguridad presentes
+curl -sI https://tudominio.com/ | grep -iE "content-security|strict-transport|x-frame|referrer"
+```
 
 ---
 
