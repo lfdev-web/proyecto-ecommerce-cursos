@@ -1,0 +1,31 @@
+# Caddy: termina el HTTPS y reenvía todo al nginx del contenedor frontend.
+#
+# Caddy pide y renueva los certificados de Let's Encrypt automáticamente, sin
+# certbot ni cron. Para lograrlo necesita que los puertos 80 y 443 del servidor
+# estén abiertos y que el dominio apunte a esta máquina.
+#
+# Reparto de responsabilidades:
+#   Caddy  -> HTTPS y certificados
+#   nginx  -> SPA compilada, /media, /static y proxy de /api y /admin
+#   Django -> la aplicación
+#
+# Por eso nginx NO lleva configuración de TLS: recibe HTTP plano desde Caddy
+# dentro de la red interna de Docker.
+
+lfldev.online, www.lfldev.online {
+	# El correo se usa para los avisos de renovación de Let's Encrypt
+	tls lfleonp@fafi.utb.edu.ec
+
+	# Caddy añade X-Forwarded-Proto: https, que es lo que Django necesita para
+	# no disparar SECURE_SSL_REDIRECT en bucle. El nginx de adentro respeta esa
+	# cabecera (ver el map en frontend/nginx.conf).
+	reverse_proxy frontend:80
+
+	encode gzip
+
+	# Registro en formato legible
+	log {
+		output stdout
+		format console
+	}
+}

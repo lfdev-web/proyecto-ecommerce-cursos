@@ -128,11 +128,11 @@ services:
     image: cursostech-frontend:prod
     container_name: frontend
     restart: always
-    # Único puerto publicado de todo el sistema. Para HTTPS, pon Caddy o
-    # Traefik delante, o monta tus certificados y añade un listen 443 en
-    # frontend/nginx.conf (ver DESPLIEGUE.md).
-    ports:
-      - "80:80"
+    # NO publica puertos: solo Caddy habla con él, por la red interna.
+    # Publicarlo dejaría el sitio accesible por HTTP sin cifrar, saltándose
+    # el HTTPS.
+    expose:
+      - "80"
     volumes:
       # Solo lectura: nginx sirve estos archivos, no los escribe.
       - static_files:/app/static:ro
@@ -142,10 +142,34 @@ services:
     networks:
       - ecommerce_net
 
+  caddy:
+    image: caddy:2-alpine
+    container_name: caddy
+    restart: always
+    # Único servicio expuesto a internet. Pide y renueva los certificados de
+    # Let's Encrypt automáticamente: para eso necesita el 80 (validación) y el
+    # 443 (tráfico). Si el 80 está cerrado en el firewall, la emisión falla.
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"   # HTTP/3
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      # Los certificados se guardan aquí: sin este volumen se vuelven a pedir
+      # en cada reinicio y Let's Encrypt aplica límites de emisión por semana.
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      - frontend
+    networks:
+      - ecommerce_net
+
 volumes:
   postgres_data:
   static_files:
   media_files:
+  caddy_data:
+  caddy_config:
 
 networks:
   ecommerce_net:
