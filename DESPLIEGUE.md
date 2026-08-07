@@ -266,7 +266,7 @@ docker compose -f docker-compose.prod.yml up -d --build
 
 Las migraciones se aplican solas al arrancar el backend. Lo que **no** es
 automático son los datos: si la actualización trae contenido nuevo (actividades,
-cuentas), hay que crearlo con su comando. Ver los pasos 6 y 7.
+cuentas, ofertas), hay que crearlo con su comando. Ver los pasos 6 a 8.
 
 ---
 
