@@ -281,6 +281,14 @@ verdad, con Gmail:
    (son 16 caracteres, no es la contraseña de tu correo).
 3. Añade al `.env` del servidor:
 
+> **Con una cuenta institucional (`@universidad.edu`) esto no suele funcionar.**
+> En Google Workspace el administrador del dominio puede desactivar las
+> contraseñas de aplicación para todos, y desde el perfil de usuario no hay
+> manera de habilitarlas: la página de `apppasswords` simplemente no aparece.
+> No es un problema que puedas resolver tú. Usa una cuenta de Gmail personal
+> como servidor de salida y deja la institucional como buzón de llegada
+> (`manage.py correo_demo`, más abajo). Enviar y recibir son cosas distintas.
+
 ```bash
 EMAIL_HOST=smtp.gmail.com
 EMAIL_PORT=587
@@ -301,6 +309,23 @@ docker compose -f docker-compose.prod.yml up -d backend celery_worker
 Gmail **ignora un remitente distinto a la cuenta autenticada**, así que
 `DEFAULT_FROM_EMAIL` debe usar el mismo correo de `EMAIL_HOST_USER`. El límite
 es de unos 500 correos al día.
+
+### Alternativa sin Gmail
+
+Si no quieres exponer una cuenta personal, cualquier proveedor de SMTP sirve;
+solo cambian las cuatro variables. Con **Brevo** (300 correos gratis al día):
+
+```bash
+EMAIL_HOST=smtp-relay.brevo.com
+EMAIL_PORT=587
+EMAIL_USE_TLS=True
+EMAIL_HOST_USER=<el login SMTP que te da Brevo>
+EMAIL_HOST_PASSWORD=<la clave SMTP>
+DEFAULT_FROM_EMAIL=CursosTech <el remitente que verificaste en Brevo>
+```
+
+A diferencia de Gmail, aquí el remitente sí puede ser distinto del usuario SMTP,
+pero **hay que verificar esa dirección en el panel de Brevo** antes de usarla.
 
 ### Que los correos de la demostración lleguen a tu bandeja
 
