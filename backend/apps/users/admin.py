@@ -21,6 +21,14 @@ class CustomUserAdmin(UserAdmin):
         }),
         (_('Important dates'), {'fields': ('last_login', 'date_joined')}),
         (_('Extra info'), {'fields': ('last_login_ip', 'is_email_verified', 'balance', 'referral_code')}),
+        (_('Demostración'), {
+            'fields': ('can_autocomplete_demo',),
+            'description': (
+                'Deja completar un curso entero de un clic, saltándose las '
+                'actividades. Solo para la cuenta de revisión: no lo actives '
+                'en cuentas reales.'
+            ),
+        }),
     )
     readonly_fields = ('balance', 'referral_code')
     

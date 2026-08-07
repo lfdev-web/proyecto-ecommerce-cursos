@@ -26,9 +26,15 @@ class CustomUserSerializer(serializers.ModelSerializer):
         model = User
         fields = (
             'id', 'email', 'first_name', 'last_name', 'role', 'avatar', 'avatar_url',
-            'bio', 'phone', 'is_email_verified', 'balance', 'referral_code'
+            'bio', 'phone', 'is_email_verified', 'balance', 'referral_code',
+            'can_autocomplete_demo',
         )
-        read_only_fields = ('id', 'role', 'is_email_verified', 'balance', 'referral_code')
+        read_only_fields = (
+            'id', 'role', 'is_email_verified', 'balance', 'referral_code',
+            # Solo de lectura: si fuera escribible, cualquiera podría darse
+            # permiso para certificarse sin hacer los cursos.
+            'can_autocomplete_demo',
+        )
 
     def get_avatar_url(self, obj):
         return obj.avatar.url if obj.avatar else None

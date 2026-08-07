@@ -1,7 +1,19 @@
 import uuid
+from django.core.validators import FileExtensionValidator
 from django.db import models
 from django.conf import settings
-from apps.catalog.models import Course, Lesson
+from apps.catalog.models import Assignment, Course, Lesson
+
+# Extensiones aceptadas en la entrega del trabajo práctico.
+#
+# La lista es corta a propósito: nginx sirve /media/ desde el MISMO origen que
+# la aplicación, así que un .html o un .svg subido por un alumno se ejecutaría
+# como si fuera código nuestro (XSS almacenado). Formatos que el navegador no
+# ejecuta, únicamente.
+EXTENSIONES_ENTREGA = ['pdf', 'zip', 'png', 'jpg', 'jpeg', 'txt', 'md', 'docx', 'ipynb']
+# Tope por archivo (bytes). DATA_UPLOAD_MAX_MEMORY_SIZE ya limita la petición
+# completa; esto da además un mensaje de error entendible.
+TAMANO_MAX_ENTREGA = 5 * 1024 * 1024
 
 
 class EnrollmentType(models.Model):
@@ -103,6 +115,54 @@ class LessonProgress(models.Model):
     def __str__(self):
         status = "✓" if self.is_completed else "○"
         return f"{status} {self.enrollment.user.email} — {self.lesson.title}"
+
+
+def ruta_entrega(instance, filename):
+    """Cada inscripción guarda su entrega en su propia carpeta."""
+    return f'entregas/{instance.enrollment_id}/{filename}'
+
+
+class AssignmentSubmission(models.Model):
+    """
+    Entrega del alumno para el trabajo práctico de su curso (Actividad 2).
+
+    Se acepta automáticamente al subirla: esta es una plataforma de
+    demostración y si la entrega quedara esperando la corrección de un docente,
+    el recorrido hasta el certificado se cortaría ahí y no habría nada que
+    mostrar. En una plataforma real aquí iría un estado (entregada / aprobada /
+    devuelta) y la calificación del docente.
+    """
+    enrollment = models.OneToOneField(
+        Enrollment,
+        on_delete=models.CASCADE,
+        related_name='assignment_submission'
+    )
+    assignment = models.ForeignKey(
+        Assignment,
+        on_delete=models.CASCADE,
+        related_name='submissions'
+    )
+    file = models.FileField(
+        upload_to=ruta_entrega,
+        blank=True,
+        validators=[FileExtensionValidator(allowed_extensions=EXTENSIONES_ENTREGA)],
+    )
+    comment = models.TextField(blank=True, default='', help_text='Nota del alumno al docente')
+    submitted_at = models.DateTimeField(auto_now_add=True)
+    # Marca las entregas que generó el botón de recorrido rápido, para que no
+    # se confundan con el trabajo real de un alumno.
+    is_auto = models.BooleanField(
+        default=False,
+        help_text='Generada por el atajo de demostración, no subida por el alumno.'
+    )
+
+    class Meta:
+        ordering = ['-submitted_at']
+        verbose_name = 'Entrega de trabajo'
+        verbose_name_plural = 'Entregas de trabajo'
+
+    def __str__(self):
+        return f'{self.enrollment.user.email} → {self.assignment.title}'
 
 
 class Certificate(models.Model):

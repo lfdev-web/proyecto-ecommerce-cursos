@@ -40,8 +40,8 @@ from django.utils.text import slugify
 from apps.users.models import (
     CustomUser, RechargeStatus, WalletRecharge, WalletTransaction,
 )
-from apps.catalog.models import Category, Course, Lesson, Review
-from apps.exams.models import AnswerOption, Exam, Question
+from apps.catalog.models import Assignment, Category, Course, Lesson, Review
+from apps.exams.models import Exam
 from apps.memberships.models import MembershipPlan, PlanAudience, UserMembership
 from apps.orders.models import Order, OrderItem, OrderStatus, Coupon, InstructorEarning
 from apps.library.models import (
@@ -51,7 +51,7 @@ from apps.library.models import (
 from apps.recommendations.models import InteractionType, UserCourseInteraction
 from apps.analytics.models import NavigationLog, ConversionFunnel
 
-from ._catalogo_demo import CURSOS, CURSOS_CON_EXAMEN, PREGUNTAS
+from ._catalogo_demo import CURSOS
 from ._portadas import generar_portada
 
 SEED_DOMAIN = 'seed.demo'
@@ -334,8 +334,8 @@ class Command(BaseCommand):
     # ------------------------------------------------------------------
     def _crear_usuarios_demo(self):
         """
-        Las tres cuentas conocidas para recorrer la aplicación: un alumno, un
-        docente y un administrador.
+        Las cuatro cuentas conocidas para recorrer la aplicación: administrador,
+        docente, alumno y revisor.
 
         Se crean AQUÍ y no solo en reset_demo_data porque quien despliega corre
         `seed_demo_data` y esperaba encontrarlas: buscarlas y que no existan es
@@ -343,41 +343,13 @@ class Command(BaseCommand):
         limpias para hacer el recorrido desde cero sin ensuciar las
         estadísticas del seed.
         """
-        from apps.users.models import INITIAL_WALLET_BALANCE, WalletTransactionType
+        from apps.common.demo_accounts import CUENTAS, crear_cuentas_demo
 
-        CUENTAS = [
-            ('admin@demo.com', 'Admin1234!', 'Admin', 'Demo', 'ADMIN'),
-            ('docente@demo.com', 'Demo1234!', 'Docente', 'Demo', 'DOCENTE'),
-            ('alumno@demo.com', 'Demo1234!', 'Alumno', 'Demo', 'ALUMNO'),
-        ]
-
-        creadas = 0
-        for email, clave, nombre, apellido, rol in CUENTAS:
-            if CustomUser.objects.filter(email=email).exists():
-                continue
-            usuario = CustomUser(
-                email=email, password=make_password(clave),
-                first_name=nombre, last_name=apellido, role_id=rol,
-                date_joined=timezone.now(), is_email_verified=True,
-                balance=INITIAL_WALLET_BALANCE,
-            )
-            if rol == 'ADMIN':
-                usuario.is_staff = True
-                usuario.is_superuser = True
-            usuario.save()
-            WalletTransaction.objects.create(
-                user=usuario, transaction_type_id=WalletTransactionType.WELCOME,
-                amount=INITIAL_WALLET_BALANCE, balance_after=INITIAL_WALLET_BALANCE,
-                description='Saldo simulado de bienvenida',
-                created_at=timezone.now(),
-            )
-            creadas += 1
-
+        creadas = crear_cuentas_demo(log=lambda _: None)
         if creadas:
             self.stdout.write(f'  Cuentas de demostración creadas: {creadas}')
-            self.stdout.write('    admin@demo.com / Admin1234!')
-            self.stdout.write('    docente@demo.com / Demo1234!')
-            self.stdout.write('    alumno@demo.com / Demo1234!')
+            for email, clave, _, _, _ in CUENTAS:
+                self.stdout.write(f'    {email} / {clave}')
 
     # ------------------------------------------------------------------
     def _seed_medallas(self):
@@ -518,9 +490,23 @@ class Command(BaseCommand):
         Lesson.objects.bulk_create(lessons)
         self.stdout.write(f'  {len(lessons)} lecciones ({con_video} con video)')
 
-        self._seed_examenes(courses)
+        self._seed_actividades()
         self._seed_promociones(courses)
         return courses
+
+    # ------------------------------------------------------------------
+    def _seed_actividades(self):
+        """
+        Las dos actividades evaluadas de cada curso (cuestionario y trabajo
+        práctico). Se delega en `crear_actividades` en lugar de duplicar la
+        lógica: ese comando también se ejecuta suelto en el servidor, sobre una
+        base ya sembrada, y las dos rutas deben producir exactamente lo mismo.
+        """
+        from django.core.management import call_command
+        call_command('crear_actividades', verbosity=0)
+        self.stdout.write(
+            f'  {Exam.objects.count()} cuestionarios y '
+            f'{Assignment.objects.count()} trabajos prácticos creados')
 
     # ------------------------------------------------------------------
     def _seed_promociones(self, courses):
@@ -574,37 +560,6 @@ class Command(BaseCommand):
             ) for d in docentes
         ])
         self.stdout.write(f'  Plan «{plan.name}» activado para {len(docentes)} docentes')
-
-    # ------------------------------------------------------------------
-    def _seed_examenes(self, courses):
-        """Examen final solo en los cursos elegidos como representativos."""
-        por_titulo = {c.title: c for c in courses}
-        creados = 0
-        for titulo in CURSOS_CON_EXAMEN:
-            course = por_titulo.get(titulo)
-            preguntas = PREGUNTAS.get(titulo)
-            if not course or not preguntas:
-                continue
-            examen = Exam.objects.create(
-                course=course, title=f'Examen final — {course.title}',
-                instructions=(
-                    f'Responde las {len(preguntas)} preguntas. Necesitas 60% para '
-                    f'aprobar y obtener tu certificado. El cronómetro lo controla '
-                    f'el servidor: si se agota, el intento se califica con 0.'),
-                time_limit_minutes=20, passing_score=Decimal('60.00'),
-                max_attempts=3, is_active=True,
-            )
-            opciones = []
-            for orden, (texto, ops) in enumerate(preguntas, start=1):
-                pregunta = Question.objects.create(
-                    exam=examen, text=texto, order=orden, points=1)
-                opciones.extend([
-                    AnswerOption(question=pregunta, text=t, is_correct=ok)
-                    for t, ok in ops
-                ])
-            AnswerOption.objects.bulk_create(opciones)
-            creados += 1
-        self.stdout.write(f'  {creados} exámenes finales creados')
 
     # ------------------------------------------------------------------
     def _seed_activity(self, courses, months, now, start):

@@ -164,3 +164,21 @@ export const ArrowLeftIcon = (props) => (
 export const ClockIcon = (props) => (
   <svg {...base} {...props}><circle cx="12" cy="12" r="9" /><path d="M12 7v5.2l3.2 2" /></svg>
 );
+
+export const UploadIcon = (props) => (
+  <svg {...base} {...props}>
+    <path d="M12 16V4" /><path d="m7 9 5-5 5 5" />
+    <path d="M4 17v2a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-2" />
+  </svg>
+);
+
+export const BookIcon = (props) => (
+  <svg {...base} {...props}>
+    <path d="M4 4.5A2.5 2.5 0 0 1 6.5 2H20v18H6.5A2.5 2.5 0 0 0 4 22V4.5Z" />
+    <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20" />
+  </svg>
+);
+
+export const ZapIcon = (props) => (
+  <svg {...base} {...props}><path d="M13 2 4 14h7l-1 8 9-12h-7l1-8Z" /></svg>
+);

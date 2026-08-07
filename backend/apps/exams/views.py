@@ -179,13 +179,17 @@ class SubmitAttemptView(APIView):
         attempt.passed = score >= exam.passing_score
         attempt.save(update_fields=['submitted_at', 'score', 'passed'])
 
-        # Si aprobó y ya tiene el 100% de progreso, emitir el certificado
+        # Aprobar el cuestionario puede ser la última pieza que faltaba, pero
+        # no siempre: el certificado también exige el trabajo práctico.
         if attempt.passed:
             from apps.library.signals import _issue_certificate_if_needed
             _issue_certificate_if_needed(attempt.enrollment)
 
         finished_count = ExamAttempt.objects.filter(enrollment=attempt.enrollment).exclude(submitted_at=None).count()
         attempts_left = None if exam.max_attempts == 0 else max(exam.max_attempts - finished_count, 0)
+
+        from apps.library.actividades import estado_actividades
+        from apps.library.models import Certificate
 
         return Response({
             'score': attempt.score,
@@ -194,5 +198,8 @@ class SubmitAttemptView(APIView):
             'correct_answers': sum(1 for a in attempt.answers.all() if a.is_correct),
             'total_questions': len(questions),
             'attempts_left': attempts_left,
-            'certificate_issued': attempt.passed and attempt.enrollment.is_completed,
+            # Se consulta la base en lugar de deducirlo: el certificado solo
+            # existe si TODAS las actividades están cumplidas.
+            'certificate_issued': Certificate.objects.filter(enrollment=attempt.enrollment).exists(),
+            'activities': estado_actividades(attempt.enrollment),
         })

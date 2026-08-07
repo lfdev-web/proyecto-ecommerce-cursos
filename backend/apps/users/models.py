@@ -91,6 +91,19 @@ class CustomUser(AbstractUser):
         help_text="Saldo simulado disponible para compras (demo, no es dinero real)."
     )
 
+    # Atajo de demostración: permite dar por completado un curso entero de un
+    # clic (lecciones, cuestionario y entrega) para poder mostrar el
+    # certificado sin recorrer las 7 lecciones una por una.
+    #
+    # Es una puerta trasera deliberada y por eso está apagada por defecto y
+    # atada al usuario, no al entorno: quien la tenga solo puede completar SUS
+    # propias inscripciones. En una plataforma real este campo no existiría.
+    can_autocomplete_demo = models.BooleanField(
+        default=False,
+        verbose_name='Puede completar cursos de un clic (demo)',
+        help_text='Solo para la cuenta de revisión. Salta las actividades del curso.'
+    )
+
     # Programa de referidos: cada usuario tiene un código único para compartir.
     referral_code = models.CharField(max_length=12, unique=True, default=generate_referral_code, editable=False)
     referred_by = models.ForeignKey(

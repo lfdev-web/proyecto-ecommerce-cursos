@@ -190,6 +190,36 @@ class Lesson(models.Model):
     def __str__(self):
         return f"{self.course.title} - {self.title}"
 
+class Assignment(models.Model):
+    """
+    Actividad 2 del curso: el trabajo práctico que el alumno debe entregar.
+
+    Es contenido del curso, igual que Lesson, por eso vive en catalog; la
+    entrega del alumno vive en library (AssignmentSubmission), del mismo modo
+    que Lesson vive aquí y LessonProgress allá.
+
+    Existe porque terminar un curso era pulsar "completada" en cada lección:
+    nada verificaba que el alumno hubiera hecho algo. Ahora el certificado
+    exige, además del 100% de las lecciones, aprobar el cuestionario y entregar
+    este trabajo.
+    """
+    course = models.OneToOneField(Course, on_delete=models.CASCADE, related_name='assignment')
+    title = models.CharField(max_length=200)
+    instructions = models.TextField(help_text='Consigna: qué debe hacer y entregar el alumno')
+    # Material de apoyo del tema (documentación oficial, libro de acceso libre)
+    resource_label = models.CharField(max_length=200, blank=True, default='')
+    resource_url = models.URLField(blank=True, default='')
+    is_active = models.BooleanField(default=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        verbose_name = 'Trabajo práctico'
+        verbose_name_plural = 'Trabajos prácticos'
+
+    def __str__(self):
+        return f'Trabajo: {self.title} — {self.course.title}'
+
+
 class SlotRequestStatus(models.Model):
     """
     Tabla catálogo de estados de una solicitud de espacio de curso (lookup table).

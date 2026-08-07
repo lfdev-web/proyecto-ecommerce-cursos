@@ -1,6 +1,6 @@
 # DB_Project — Estructura de la base de datos (PostgreSQL 17)
 
-Scripts DDL de las **50 tablas** del proyecto E-Commerce de Cursos Tecnológicos,
+Scripts DDL de las **52 tablas** del proyecto E-Commerce de Cursos Tecnológicos,
 con nombres de tablas, columnas, restricciones e índices **en español**.
 
 La estructura (tipos de datos, claves primarias, claves foráneas, restricciones
@@ -15,15 +15,15 @@ gestionada por Django en Docker); solo se tradujeron los nombres para la present
 | # | Script | Módulo | Tablas |
 |---|--------|--------|--------|
 | 01 | `01_usuarios.sql` | Usuarios, saldo, recargas y postulación a docente | 10 |
-| 02 | `02_catalogo.sql` | Catálogo de cursos y aprobación | 8 |
+| 02 | `02_catalogo.sql` | Catálogo de cursos, trabajos prácticos y aprobación | 9 |
 | 03 | `03_ordenes.sql` | Carrito, órdenes, cupones y ganancias | 7 |
 | 04 | `04_membresias.sql` | Planes y suscripciones | 7 |
-| 05 | `05_biblioteca.sql` | Inscripciones, progreso, certificados y medallas | 8 |
+| 05 | `05_biblioteca.sql` | Inscripciones, progreso, entregas, certificados y medallas | 9 |
 | 06 | `06_examenes.sql` | Examen final, intentos y respuestas | 5 |
 | 07 | `07_recomendaciones.sql` | Motor de recomendaciones (SVD) | 3 |
 | 08 | `08_analitica.sql` | Navegación y embudo de conversión | 2 |
 
-**Total: 50 tablas, 66 claves foráneas y 26 restricciones UNIQUE.**
+**Total: 52 tablas, 69 claves foráneas y 28 restricciones UNIQUE.**
 
 El orden importa: cada script referencia tablas creadas en los anteriores.
 
@@ -35,22 +35,22 @@ se comparó contra la base real, columna por columna:
 | Comprobación | Resultado |
 |---|---|
 | Los 8 scripts ejecutan en orden | Sin errores |
-| Número de tablas | 50 = 50 |
-| Número de columnas | 310 = 310 |
-| Restricciones UNIQUE | 26 = 26 |
-| Tipo de dato y nulabilidad en cada posición | **50 de 50 tablas coinciden exactamente** |
-| Claves foráneas | 66 vs 68 (ver nota abajo) |
+| Número de tablas | 52 = 52 |
+| Número de columnas | 326 = 326 |
+| Restricciones UNIQUE | 28 = 28 |
+| Tipo de dato y nulabilidad en cada posición | **52 de 52 tablas coinciden exactamente** |
+| Claves foráneas | 69 vs 71 (ver nota abajo) |
 
 ## Cómo montarla en pgAdmin 4 (y generar el MER)
 
 1. Crear una base de datos nueva, por ejemplo `ecommerce_cursos_presentacion`.
 2. Abrir el **Query Tool** sobre esa base y ejecutar los 8 scripts **en orden (01 → 08)**.
 3. Clic derecho sobre la base → **Generate ERD** → se genera el diagrama
-   entidad-relación automáticamente con las 50 tablas y sus relaciones.
+   entidad-relación automáticamente con las 52 tablas y sus relaciones.
 
 ## Un detalle de diseño: tablas de catálogo con clave natural
 
-De las 50 tablas, **15 son catálogos** (roles, estados, tipos, niveles). Todas
+De las 52 tablas, **15 son catálogos** (roles, estados, tipos, niveles). Todas
 usan una clave primaria natural — el código en texto — en lugar de un `id`
 numérico:
 
@@ -94,6 +94,7 @@ Los catálogos son: `roles`, `tipos_transaccion_saldo`, `estados_recarga`,
 | categorias | catalog_category |
 | cursos | catalog_course |
 | lecciones | catalog_lesson |
+| trabajos_practicos | catalog_assignment |
 | resenas | catalog_review |
 | estados_solicitud_cupo | catalog_slotrequeststatus |
 | solicitudes_cupo | catalog_courseslotrequest |
@@ -118,6 +119,7 @@ Los catálogos son: `roles`, `tipos_transaccion_saldo`, `estados_recarga`,
 | inscripciones | library_enrollment |
 | progreso_lecciones | library_lessonprogress |
 | certificados | library_certificate |
+| entregas_trabajo | library_assignmentsubmission |
 | lista_deseos | library_wishlistitem |
 | rachas_estudio | library_studystreak |
 | medallas | library_achievement |
@@ -142,11 +144,11 @@ Los catálogos son: `roles`, `tipos_transaccion_saldo`, `estados_recarga`,
   `usuarios_grupos.grupo_id` y `usuarios_permisos.permiso_id` referencian tablas
   internas de Django (`auth_group`, `auth_permission`). Aquí se omiten esas 2 FK
   para que los scripts corran de forma independiente; las columnas sí existen.
-  Por eso el total es 66 y no 68.
+  Por eso el total es 69 y no 71.
 - **Índices**: se incluyen los que sirven a consultas reales (claves foráneas y
   los compuestos del dashboard). Se omiten los `varchar_pattern_ops` que Django
   crea automáticamente junto a cada índice de texto, porque solo sirven para
   búsquedas con `LIKE` y duplicarían la lista sin aportar al diagrama.
 - La base real contiene además **15 tablas de infraestructura** (autenticación de
   Django, sesiones, Celery Beat, blacklist de JWT) que no forman parte del diseño
-  propio y por eso no se incluyen. En total la base real tiene 63 tablas.
+  propio y por eso no se incluyen. En total la base real tiene 67 tablas.

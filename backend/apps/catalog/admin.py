@@ -1,9 +1,18 @@
 from django.contrib import admin
 from django.utils import timezone
 from .models import (
-    Category, Course, Lesson, Review,
+    Assignment, Category, Course, Lesson, Review,
     CourseSlotRequest, SlotRequestStatus, CourseStatus,
 )
+
+
+@admin.register(Assignment)
+class AssignmentAdmin(admin.ModelAdmin):
+    """Actividad 2 del curso: el trabajo práctico que el alumno debe entregar."""
+    list_display = ('title', 'course', 'is_active', 'created_at')
+    list_filter = ('is_active', 'course__category')
+    search_fields = ('title', 'course__title')
+    autocomplete_fields = ('course',)
 
 @admin.register(Category)
 class CategoryAdmin(admin.ModelAdmin):

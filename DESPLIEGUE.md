@@ -94,6 +94,45 @@ docker compose -f docker-compose.prod.yml exec backend python manage.py seed_dem
 > contraseñas conocidas (`Demo1234!`). Sirve para la defensa del proyecto, no
 > para producción de verdad.
 
+### 6. Actividades de los cursos
+
+Cada curso tiene dos actividades evaluadas: un **cuestionario** y un **trabajo
+práctico**. Sin ellas el alumno no se certifica. El seed ya las crea; sobre una
+base sembrada **antes** de este cambio hay que crearlas aparte:
+
+```bash
+docker compose -f docker-compose.prod.yml exec backend python manage.py crear_actividades
+```
+
+Es idempotente y no borra nada: solo agrega lo que falte, así que se puede
+correr sobre la base que ya está en producción sin perder usuarios, compras ni
+certificados. Vuelve a correrlo cuando agregues cursos nuevos.
+
+### 7. Cuentas de demostración
+
+Si la base ya estaba sembrada y las cuentas `@demo.com` no existen:
+
+```bash
+docker compose -f docker-compose.prod.yml cp scripts/crear_usuarios_demo.py backend:/tmp/cd.py
+docker compose -f docker-compose.prod.yml exec backend python manage.py shell -c "exec(open('/tmp/cd.py').read())"
+```
+
+| Cuenta | Contraseña | Para qué sirve |
+|---|---|---|
+| `admin@demo.com` | `Admin1234!` | Django Admin y panel de analítica |
+| `docente@demo.com` | `Demo1234!` | Panel del docente |
+| `alumno@demo.com` | `Demo1234!` | Recorrido completo: compra → lecciones → actividades → certificado |
+| `revisor@demo.com` | `Demo1234!` | Igual que el alumno, **más** el botón que completa todos sus cursos de un clic |
+
+> `revisor@demo.com` existe porque completar un curso a mano son siete
+> lecciones, un cuestionario y una entrega, y quien revisa la plataforma
+> necesita ver el certificado y el correo, no repetir ese trámite. Es una
+> puerta trasera deliberada: vive en la columna `can_autocomplete_demo` de la
+> tabla de usuarios, está apagada por defecto y solo puede completar las
+> inscripciones **de su propio dueño**. Cualquier otra cuenta que la invoque
+> recibe 403. En una plataforma real esa columna no existiría — si algún día
+> este proyecto deja de ser una demostración, hay que quitarla.
+
 ---
 
 ## HTTPS
@@ -186,8 +225,9 @@ docker compose -f docker-compose.prod.yml exec -T postgres_db \
   psql -U "$POSTGRES_USER" "$POSTGRES_DB" < respaldo_2026-07-31.sql
 ```
 
-Los archivos subidos por usuarios (avatares, cédulas de los docentes) viven en
-el volumen `media_files`. Respáldalo también:
+Los archivos subidos por usuarios (avatares, cédulas de los docentes y las
+**entregas de los trabajos prácticos**) viven en el volumen `media_files`.
+Respáldalo también:
 
 ```bash
 docker run --rm -v proyecto_ecommerce_cursos_media_files:/media \
@@ -204,7 +244,9 @@ git pull
 docker compose -f docker-compose.prod.yml up -d --build
 ```
 
-Las migraciones se aplican solas al arrancar el backend.
+Las migraciones se aplican solas al arrancar el backend. Lo que **no** es
+automático son los datos: si la actualización trae contenido nuevo (actividades,
+cuentas), hay que crearlo con su comando. Ver los pasos 6 y 7.
 
 ---
 
@@ -247,6 +289,10 @@ es de unos 500 correos al día.
 | Al completar una compra | Factura en PDF con el detalle y el descuento aplicado |
 | Al emitirse un certificado | Certificado en PDF, solo la primera vez |
 | Al aprobarse una recarga | Comprobante con la referencia y el saldo resultante |
+
+El certificado se emite cuando se cumplen **las tres** condiciones: 100% de las
+lecciones, cuestionario aprobado y trabajo práctico entregado. Si falta
+cualquiera, no hay certificado ni correo.
 
 Los tres salen por **Celery**, nunca dentro de la petición: si el SMTP está
 caído, la compra sigue siendo válida y el fallo solo queda en el log. Verificar

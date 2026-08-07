@@ -45,6 +45,11 @@ CREATE TABLE public.usuarios (
     saldo numeric(10,2) NOT NULL,
     codigo_referido character varying(12) NOT NULL,
     referido_por_id bigint,
+    -- Atajo de demostración: permite dar por cumplido un curso entero de un
+    -- clic para poder mostrar el certificado sin recorrer las lecciones una
+    -- por una. Está apagado por defecto y solo se activa en la cuenta de
+    -- revisión; en una plataforma real esta columna no existiría.
+    puede_completar_demo boolean NOT NULL,
 
     CONSTRAINT uq_usuarios_email UNIQUE (email),
     CONSTRAINT uq_usuarios_codigo_referido UNIQUE (codigo_referido)

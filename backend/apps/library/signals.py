@@ -78,17 +78,17 @@ def _trigger_engagement_interaction_if_needed(enrollment, progress_percentage):
 def _issue_certificate_if_needed(enrollment):
     """
     Crea el Certificate del enrollment si aún no existe (idempotente vía get_or_create).
-    Requisitos: 100% de progreso Y, si el curso tiene examen final activo, haberlo aprobado.
+
+    Requisitos: 100% de las lecciones Y las dos actividades del curso —
+    cuestionario aprobado y trabajo práctico entregado (ver actividades.py).
     Al emitir se guarda un snapshot histórico (nombre, título, horas): el certificado
     es un documento y debe conservar los datos de ese momento aunque cambien después.
     """
     if not enrollment.is_completed:
         return
 
-    # Si el curso tiene examen final activo, el certificado exige haberlo aprobado
-    from apps.exams.models import Exam, ExamAttempt
-    exam = Exam.objects.filter(course=enrollment.course, is_active=True).first()
-    if exam and not ExamAttempt.objects.filter(enrollment=enrollment, passed=True).exists():
+    from .actividades import curso_terminado
+    if not curso_terminado(enrollment):
         return
 
     user = enrollment.user

@@ -904,19 +904,11 @@ CURSOS = [
     ),
 ]
 
-# Cursos que tendrán examen final. Se eligen representativos de distintas
-# categorías y niveles, para poder demostrar el flujo completo hasta el
-# certificado sin cargar los 30 cursos con exámenes.
-CURSOS_CON_EXAMEN = [
-    'Python desde cero',
-    'SQL para análisis de datos',
-    'React en la práctica',
-    'Docker desde cero',
-    'Fundamentos de ciberseguridad',
-    'Análisis de datos con Python y Pandas',
-]
-
-# Preguntas por curso. Cada opción es (texto, es_correcta).
+# Preguntas del cuestionario (Actividad 1) de estos seis cursos, los primeros
+# que lo tuvieron. Los otros veinticuatro están en _actividades_demo.CUESTIONARIOS;
+# el comando `crear_actividades` junta los dos diccionarios. Estos conservan sus
+# cinco preguntas originales en lugar de las tres de los demás.
+# Cada opción es (texto, es_correcta).
 PREGUNTAS = {
     'Python desde cero': [
         ('¿Cuál es la forma correcta de declarar una variable en Python?', [

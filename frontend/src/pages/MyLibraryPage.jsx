@@ -2,7 +2,9 @@ import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import api from '../api/client';
 import { useAuth } from '../context/AuthContext';
-import { FlameIcon, PlayIcon, CertificateIcon, PencilIcon } from '../components/Icons';
+import {
+  FlameIcon, PlayIcon, CertificateIcon, PencilIcon, UploadIcon, ZapIcon,
+} from '../components/Icons';
 
 export default function MyLibraryPage() {
   const { user } = useAuth();
@@ -10,6 +12,8 @@ export default function MyLibraryPage() {
   const [streak, setStreak] = useState(null);
   const [loading, setLoading] = useState(true);
   const [copied, setCopied] = useState(false);
+  const [completando, setCompletando] = useState(false);
+  const [resumenDemo, setResumenDemo] = useState('');
 
   const referralLink = user ? `${window.location.origin}/registro?ref=${user.referral_code}` : '';
 
@@ -19,10 +23,29 @@ export default function MyLibraryPage() {
     setTimeout(() => setCopied(false), 2000);
   };
 
+  const cargarCursos = () =>
+    api.get('/library/my-courses/').then(({ data }) => setEnrollments(data));
+
   useEffect(() => {
-    api.get('/library/my-courses/').then(({ data }) => setEnrollments(data)).finally(() => setLoading(false));
+    cargarCursos().finally(() => setLoading(false));
     api.get('/library/streak/').then(({ data }) => setStreak(data)).catch(() => {});
   }, []);
+
+  // Atajo de la cuenta de revisión: completa todos los cursos de una vez para
+  // poder ver el certificado sin recorrer las lecciones una por una.
+  const handleCompletarTodo = async () => {
+    setCompletando(true);
+    setResumenDemo('');
+    try {
+      const { data } = await api.post('/library/demo/completar/');
+      setResumenDemo(data.detail);
+      await cargarCursos();
+    } catch (err) {
+      setResumenDemo(err.response?.data?.detail || 'No se pudo completar el recorrido.');
+    } finally {
+      setCompletando(false);
+    }
+  };
 
   const handleDownloadCertificate = async (enrollmentId, courseTitle) => {
     const { data } = await api.get(`/library/${enrollmentId}/certificate/`, { responseType: 'blob' });
@@ -40,6 +63,25 @@ export default function MyLibraryPage() {
   return (
     <div className="page">
       <h1>Mi biblioteca</h1>
+
+      {user?.can_autocomplete_demo && (
+        <div className="aviso-demo">
+          <h3>Recorrido rápido (cuenta de revisión)</h3>
+          <p>
+            Da por cumplidas las lecciones, el cuestionario y la entrega de todos
+            tus cursos, y emite los certificados. Se generan los mismos registros
+            que si los hubieras hecho a mano; las entregas quedan marcadas como
+            automáticas. Solo esta cuenta puede hacerlo.
+          </p>
+          <button className="btn btn-primary" disabled={completando} onClick={handleCompletarTodo}>
+            <ZapIcon width={16} height={16} />
+            {completando ? 'Completando...' : 'Completar todos mis cursos'}
+          </button>
+          {resumenDemo && (
+            <p style={{ marginTop: 12, marginBottom: 0, fontSize: 13 }}>{resumenDemo}</p>
+          )}
+        </div>
+      )}
 
       {streak && (
         <div className="glass card" style={{ marginBottom: 16, display: 'flex', gap: 32, alignItems: 'center' }}>
@@ -89,6 +131,8 @@ export default function MyLibraryPage() {
                 <PlayIcon width={16} height={16} />
                 {enrollment.progress_percentage > 0 ? 'Continuar aprendiendo' : 'Empezar el curso'}
               </Link>
+              {/* Qué le falta al alumno para certificarse. El orden es el del
+                  recorrido: lecciones → cuestionario → entrega → certificado. */}
               {enrollment.certificate ? (
                 <button
                   className="btn btn-secondary btn-block"
@@ -96,12 +140,18 @@ export default function MyLibraryPage() {
                 >
                   <CertificateIcon width={16} height={16} /> Descargar certificado
                 </button>
-              ) : enrollment.is_completed && enrollment.final_exam && !enrollment.final_exam.passed ? (
+              ) : !enrollment.is_completed ? (
+                <span className="badge badge-accent">En progreso</span>
+              ) : enrollment.activities?.quiz?.exists && !enrollment.activities.quiz.done ? (
                 <Link to={`/examen/${enrollment.course.id}`} className="btn btn-primary btn-block">
-                  <PencilIcon width={16} height={16} /> Rendir examen final
+                  <PencilIcon width={16} height={16} /> Rendir el cuestionario
+                </Link>
+              ) : enrollment.activities?.assignment?.exists && !enrollment.activities.assignment.done ? (
+                <Link to={`/aprender/${enrollment.id}`} className="btn btn-primary btn-block">
+                  <UploadIcon width={16} height={16} /> Entregar el trabajo
                 </Link>
               ) : (
-                <span className="badge badge-accent">En progreso</span>
+                <span className="badge badge-accent">Actividades pendientes</span>
               )}
             </div>
           ))}

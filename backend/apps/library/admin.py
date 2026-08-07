@@ -1,9 +1,25 @@
 from django.contrib import admin
 
 from .models import (
-    EnrollmentType, Enrollment, LessonProgress, Certificate, WishlistItem, StudyStreak,
-    Achievement, UserAchievement,
+    AssignmentSubmission, EnrollmentType, Enrollment, LessonProgress, Certificate,
+    WishlistItem, StudyStreak, Achievement, UserAchievement,
 )
+
+
+@admin.register(AssignmentSubmission)
+class AssignmentSubmissionAdmin(admin.ModelAdmin):
+    """
+    Entregas de los alumnos. Se consultan y se descargan; no se crean a mano,
+    las sube el alumno desde su curso.
+    """
+    list_display = ('enrollment', 'assignment', 'is_auto', 'submitted_at')
+    list_filter = ('is_auto', 'assignment__course__category')
+    search_fields = ('enrollment__user__email', 'assignment__title')
+    ordering = ('-submitted_at',)
+    readonly_fields = ('enrollment', 'assignment', 'file', 'comment', 'submitted_at', 'is_auto')
+
+    def has_add_permission(self, request):
+        return False
 
 
 @admin.register(EnrollmentType)

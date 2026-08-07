@@ -1,11 +1,16 @@
 from rest_framework import generics, permissions, status
+from rest_framework.parsers import FormParser, MultiPartParser
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from django.http import HttpResponse
 from django.shortcuts import get_object_or_404
 from django.template.loader import render_to_string
 
-from .models import Enrollment, LessonProgress, Certificate, WishlistItem, StudyStreak, Achievement, UserAchievement
+from .actividades import estado_actividades
+from .models import (
+    Achievement, AssignmentSubmission, Certificate, Enrollment, LessonProgress,
+    StudyStreak, UserAchievement, WishlistItem, TAMANO_MAX_ENTREGA,
+)
 from .serializers import EnrollmentSerializer, WishlistItemSerializer, StudyStreakSerializer
 from .achievements import evaluate_achievements
 
@@ -45,6 +50,7 @@ class EnrollmentLessonsView(APIView):
         lessons = enrollment.course.lessons.order_by('order')
         return Response({
             'course_title': enrollment.course.title,
+            'course_id': enrollment.course_id,
             'progress_percentage': enrollment.progress_percentage,
             'is_completed': enrollment.is_completed,
             'lessons': [
@@ -57,6 +63,132 @@ class EnrollmentLessonsView(APIView):
                 }
                 for lesson in lessons
             ],
+            # Las dos actividades evaluadas viajan aquí para que el reproductor
+            # las muestre sin una segunda petición.
+            'activities': estado_actividades(enrollment),
+        })
+
+
+class CourseActivitiesView(APIView):
+    """
+    Estado de las dos actividades del curso: cuestionario y trabajo práctico.
+    Es lo que decide si el alumno puede certificarse, así que se calcula en el
+    servidor y no en el navegador.
+    """
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get(self, request, enrollment_id):
+        enrollment = get_object_or_404(Enrollment, id=enrollment_id, user=request.user)
+        from .actividades import curso_terminado
+        estado = estado_actividades(enrollment)
+        return Response({
+            'course_title': enrollment.course.title,
+            'course_id': enrollment.course_id,
+            'activities': estado,
+            'can_certify': curso_terminado(enrollment, estado),
+            'has_certificate': Certificate.objects.filter(enrollment=enrollment).exists(),
+        })
+
+
+class AssignmentSubmitView(APIView):
+    """
+    Entrega del trabajo práctico (Actividad 2). Recibe un archivo y un
+    comentario opcional. Al aceptarse, si el curso ya cumple el resto de los
+    requisitos, la señal de siempre emite el certificado.
+    """
+    permission_classes = [permissions.IsAuthenticated]
+    parser_classes = [MultiPartParser, FormParser]
+
+    def post(self, request, enrollment_id):
+        from apps.catalog.models import Assignment
+        from .models import EXTENSIONES_ENTREGA
+        from .signals import _issue_certificate_if_needed
+
+        enrollment = get_object_or_404(Enrollment, id=enrollment_id, user=request.user)
+        assignment = get_object_or_404(Assignment, course=enrollment.course, is_active=True)
+
+        if enrollment.progress_percentage < 100.0:
+            return Response(
+                {'detail': 'Completa todas las lecciones antes de entregar el trabajo.'},
+                status=status.HTTP_400_BAD_REQUEST)
+
+        if AssignmentSubmission.objects.filter(enrollment=enrollment).exists():
+            return Response({'detail': 'Ya entregaste el trabajo de este curso.'},
+                            status=status.HTTP_400_BAD_REQUEST)
+
+        archivo = request.FILES.get('file')
+        if not archivo:
+            return Response({'detail': 'Adjunta el archivo de tu entrega.'},
+                            status=status.HTTP_400_BAD_REQUEST)
+
+        extension = archivo.name.rsplit('.', 1)[-1].lower() if '.' in archivo.name else ''
+        if extension not in EXTENSIONES_ENTREGA:
+            return Response(
+                {'detail': f'Formato no permitido. Acepta: {", ".join(EXTENSIONES_ENTREGA)}.'},
+                status=status.HTTP_400_BAD_REQUEST)
+        if archivo.size > TAMANO_MAX_ENTREGA:
+            return Response(
+                {'detail': f'El archivo supera los {TAMANO_MAX_ENTREGA // (1024 * 1024)} MB.'},
+                status=status.HTTP_400_BAD_REQUEST)
+
+        AssignmentSubmission.objects.create(
+            enrollment=enrollment,
+            assignment=assignment,
+            file=archivo,
+            comment=request.data.get('comment', '')[:2000],
+        )
+
+        # La entrega puede ser la última pieza que faltaba para el certificado.
+        _issue_certificate_if_needed(enrollment)
+        evaluate_achievements(request.user)
+
+        return Response({
+            'detail': 'Trabajo entregado.',
+            'activities': estado_actividades(enrollment),
+            'certificate_issued': Certificate.objects.filter(enrollment=enrollment).exists(),
+        }, status=status.HTTP_201_CREATED)
+
+
+class DemoCompleteView(APIView):
+    """
+    Atajo de la cuenta de revisión: da por cumplido un curso — o todos — para
+    poder llegar al certificado sin recorrer las lecciones una por una.
+
+    Reservado a los usuarios con `can_autocomplete_demo`, y limitado a sus
+    propias inscripciones. Cualquier otro recibe 403.
+    """
+    permission_classes = [permissions.IsAuthenticated]
+
+    def post(self, request, enrollment_id=None):
+        if not request.user.can_autocomplete_demo:
+            return Response(
+                {'detail': 'Tu cuenta no tiene habilitado el recorrido rápido.'},
+                status=status.HTTP_403_FORBIDDEN)
+
+        from .demo import completar_inscripcion
+
+        if enrollment_id is not None:
+            inscripciones = [get_object_or_404(
+                Enrollment, id=enrollment_id, user=request.user)]
+        else:
+            inscripciones = list(
+                Enrollment.objects.filter(user=request.user)
+                .select_related('course').order_by('id'))
+
+        if not inscripciones:
+            return Response(
+                {'detail': 'No tienes cursos en tu biblioteca todavía.'},
+                status=status.HTTP_400_BAD_REQUEST)
+
+        resultados = [completar_inscripcion(e) for e in inscripciones]
+        certificados = sum(1 for r in resultados if r['certificado'])
+
+        return Response({
+            'detail': (
+                f'{len(resultados)} curso(s) completado(s), '
+                f'{certificados} certificado(s) emitido(s). '
+                f'Los certificados salen también por correo.'),
+            'cursos': resultados,
         })
 
 

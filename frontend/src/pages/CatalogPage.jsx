@@ -95,7 +95,7 @@ export default function CatalogPage() {
       {/* Hero: en el patrón marketplace la búsqueda ES el llamado a la acción */}
       <section className="catalog-hero">
         <h1>Aprende tecnología a tu ritmo</h1>
-        <p>Cursos con lecciones en video, examen final y certificado verificable.</p>
+        <p>Lecciones en video, cuestionario, trabajo práctico y certificado verificable.</p>
         <form
           className="hero-search"
           onSubmit={(e) => {

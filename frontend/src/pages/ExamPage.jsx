@@ -110,8 +110,8 @@ export default function ExamPage() {
     return (
       <div className="page">
         <div className="glass card">
-          <h2>Este curso no tiene examen final</h2>
-          <p>{error || 'El certificado se emite automáticamente al completar todas las lecciones.'}</p>
+          <h2>Este curso no tiene cuestionario</h2>
+          <p>{error || 'Completa las lecciones y entrega el trabajo práctico desde el curso para obtener tu certificado.'}</p>
           <Link to="/mi-biblioteca" className="btn btn-secondary">Volver a mi biblioteca</Link>
         </div>
       </div>
@@ -142,6 +142,16 @@ export default function ExamPage() {
           {passed && result.certificate_issued && (
             <p className="badge badge-accent icon-text" style={{ marginTop: 8 }}>
               <CertificateIcon width={15} height={15} /> Tu certificado ya está disponible en tu biblioteca
+            </p>
+          )}
+          {/* Aprobar el cuestionario no siempre alcanza: si el trabajo práctico
+              sigue sin entregar, hay que decirlo aquí y no dejar al alumno
+              buscando un certificado que no va a aparecer. */}
+          {passed && !result.certificate_issued && result.activities?.assignment?.exists
+            && !result.activities.assignment.done && (
+            <p style={{ marginTop: 8, color: 'var(--text-secondary)', fontSize: 14 }}>
+              Te falta entregar el trabajo práctico «{result.activities.assignment.title}»
+              para recibir el certificado. Lo encuentras al final del curso.
             </p>
           )}
           {!passed && result.attempts_left !== null && result.attempts_left !== undefined && (

@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import api from '../api/client';
-import { CheckCircleIcon, CheckIcon, CircleIcon, TrophyIcon, VideoIcon } from '../components/Icons';
+import ActividadesCurso from '../components/ActividadesCurso';
+import { CheckCircleIcon, CheckIcon, CircleIcon, VideoIcon } from '../components/Icons';
 
 // Convierte links de YouTube en su versión embebible; otros links se devuelven igual.
 function toEmbedUrl(url) {
@@ -174,12 +175,20 @@ export default function CoursePlayerPage() {
           </div>
 
           {syllabus.is_completed && (
-            <Link to="/mi-biblioteca" className="btn btn-secondary btn-block" style={{ marginTop: 16 }}>
-              <TrophyIcon width={16} height={16} /> Curso completado — ver biblioteca
-            </Link>
+            <p className="badge badge-success" style={{ marginTop: 16, display: 'block', textAlign: 'center' }}>
+              Todas las lecciones vistas
+            </p>
           )}
         </div>
       </div>
+
+      {/* Las dos actividades evaluadas: sin ellas no hay certificado */}
+      <ActividadesCurso
+        enrollmentId={enrollmentId}
+        courseId={syllabus.course_id}
+        actividades={syllabus.activities}
+        onCambio={(activities) => setSyllabus((prev) => ({ ...prev, activities }))}
+      />
     </div>
   );
 }

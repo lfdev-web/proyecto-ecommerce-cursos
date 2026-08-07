@@ -35,30 +35,30 @@ class EnrollmentSerializer(serializers.ModelSerializer):
     course = EnrolledCourseSerializer(read_only=True)
     lesson_progresses = LessonProgressSerializer(many=True, read_only=True)
     certificate = CertificateSerializer(read_only=True)
-    final_exam = serializers.SerializerMethodField()
+    activities = serializers.SerializerMethodField()
+    can_certify = serializers.SerializerMethodField()
 
     class Meta:
         model = Enrollment
         fields = (
             'id', 'course', 'enrollment_type',
             'enrolled_at', 'progress_percentage',
-            'is_completed', 'lesson_progresses', 'certificate', 'final_exam'
+            'is_completed', 'lesson_progresses', 'certificate',
+            'activities', 'can_certify',
         )
         read_only_fields = ('enrolled_at', 'progress_percentage', 'is_completed')
 
-    def get_final_exam(self, obj):
+    def get_activities(self, obj):
         """
-        Estado del examen final del curso (None si el curso no tiene examen activo).
-        El frontend lo usa para decidir si mostrar 'Rendir examen final'.
+        Estado de las dos actividades del curso (cuestionario y trabajo).
+        El frontend lo usa para saber qué botón mostrar en cada tarjeta.
         """
-        from apps.exams.models import Exam
-        exam = Exam.objects.filter(course=obj.course, is_active=True).only('id').first()
-        if not exam:
-            return None
-        return {
-            'exam_id': exam.id,
-            'passed': obj.exam_attempts.filter(passed=True).exists(),
-        }
+        from .actividades import estado_actividades
+        return estado_actividades(obj)
+
+    def get_can_certify(self, obj):
+        from .actividades import curso_terminado
+        return curso_terminado(obj)
 
 
 class WishlistItemSerializer(serializers.ModelSerializer):

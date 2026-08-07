@@ -42,7 +42,10 @@ class Command(BaseCommand):
         from apps.analytics.models import ConversionFunnel, NavigationLog
         from apps.catalog.models import Course, CourseSlotRequest, Lesson, Review
         from apps.exams.models import AnswerOption, AttemptAnswer, Exam, ExamAttempt, Question
-        from apps.library.models import Certificate, Enrollment, LessonProgress, StudyStreak, WishlistItem
+        from apps.catalog.models import Assignment
+        from apps.library.models import (
+            AssignmentSubmission, Certificate, Enrollment, LessonProgress, StudyStreak, WishlistItem,
+        )
         from apps.memberships.models import MembershipPayment, UserMembership
         from apps.orders.models import Cart, CartItem, InstructorEarning, Order, OrderItem
         from apps.recommendations.models import RecommendationCache, UserCourseInteraction
@@ -55,6 +58,8 @@ class Command(BaseCommand):
             ('Opciones de pregunta', AnswerOption),
             ('Preguntas', Question),
             ('Exámenes', Exam),
+            ('Entregas de trabajo', AssignmentSubmission),
+            ('Trabajos prácticos', Assignment),
             ('Certificados', Certificate),
             ('Progreso de lecciones', LessonProgress),
             ('Inscripciones', Enrollment),
@@ -96,39 +101,14 @@ class Command(BaseCommand):
                     self.stdout.write(f'  Archivos borrados: {carpeta}/')
 
         # --- Usuarios de demostración ---
-        admin = User.objects.create_superuser(
-            email=ADMIN['email'], password=ADMIN['password'],
-            first_name=ADMIN['first_name'], last_name=ADMIN['last_name'],
-        )
-        admin.role_id = 'ADMIN'
-        admin.save(update_fields=['role'])
-
-        docente = User.objects.create_user(
-            email=DOCENTE['email'], password=DOCENTE['password'],
-            first_name=DOCENTE['first_name'], last_name=DOCENTE['last_name'],
-        )
-        docente.role_id = 'DOCENTE'
-        docente.save(update_fields=['role'])
-
-        alumno = User.objects.create_user(
-            email=ALUMNO['email'], password=ALUMNO['password'],
-            first_name=ALUMNO['first_name'], last_name=ALUMNO['last_name'],
-        )
-
-        # Saldo de bienvenida registrado en el libro mayor, como en un registro real
-        from apps.users.models import INITIAL_WALLET_BALANCE, WalletTransactionType, record_wallet_transaction
-        for usuario in (admin, docente, alumno):
-            usuario.balance = INITIAL_WALLET_BALANCE
-            usuario.save(update_fields=['balance'])
-            record_wallet_transaction(
-                usuario, WalletTransactionType.WELCOME, INITIAL_WALLET_BALANCE,
-                description='Saldo simulado de bienvenida',
-            )
+        # Compartido con seed_demo_data: las cuentas deben ser las mismas se
+        # llegue por donde se llegue.
+        from apps.common.demo_accounts import CUENTAS, crear_cuentas_demo
+        crear_cuentas_demo(log=lambda _: None)
 
         self.stdout.write(self.style.SUCCESS('\nBase reiniciada. Usuarios disponibles:'))
-        self.stdout.write(f"  ADMIN    {ADMIN['email']} / {ADMIN['password']}")
-        self.stdout.write(f"  DOCENTE  {DOCENTE['email']} / {DOCENTE['password']}")
-        self.stdout.write(f"  ALUMNO   {ALUMNO['email']} / {ALUMNO['password']}")
+        for email, clave, _, _, rol in CUENTAS:
+            self.stdout.write(f'  {rol:<8} {email:<20} / {clave}')
         self.stdout.write(
             '\nSe conservaron categorías, cupones, planes de membresía y las tablas catálogo.'
         )
