@@ -108,7 +108,27 @@ Es idempotente y no borra nada: solo agrega lo que falte, así que se puede
 correr sobre la base que ya está en producción sin perder usuarios, compras ni
 certificados. Vuelve a correrlo cuando agregues cursos nuevos.
 
-### 7. Cuentas de demostración
+### 7. Ofertas del carrete de la portada
+
+El carrete de la portada se oculta si no hay ningún curso en oferta. Sobre una
+base sembrada antes de las promociones no hay ninguno:
+
+```bash
+docker compose -f docker-compose.prod.yml exec backend python manage.py crear_promociones
+```
+
+**Las ofertas vencen** (entre 2 y 10 días). Vuelve a correr el comando cuando el
+carrete se quede vacío, o fija una duración larga:
+
+```bash
+docker compose -f docker-compose.prod.yml exec backend python manage.py crear_promociones --dias 30
+```
+
+Con `--quitar` se retiran todas. El precio de lista nunca se toca: la oferta vive
+en `promo_price`/`promo_until`, así que al vencer el curso vuelve solo a su precio
+original.
+
+### 8. Cuentas de demostración
 
 Si la base ya estaba sembrada y las cuentas `@demo.com` no existen:
 
